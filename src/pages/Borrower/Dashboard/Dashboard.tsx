@@ -49,7 +49,7 @@ export default function BorrowerDashboard() {
     const handleOpenSigning = async (loan: any) => {
         try {
             // Inside handleOpenSigning
-            const response = await fetch("http://192.168.1.125:3000/api/docusign/create-session", {
+            const response = await fetch("https://finance-process-app-server-1.onrender.com/api/docusign/create-session", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

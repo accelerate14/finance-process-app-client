@@ -20,7 +20,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       // Replace '/your-org' with your actual organization
-      '/myautgxiywxa': {
+      '/accelirateuipcl': {
         target: 'https://cloud.uipath.com',
         changeOrigin: true,
         secure: true,
