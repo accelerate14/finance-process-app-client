@@ -35,34 +35,3 @@ export default function Button({
     </button>
   );
 }
-
-
-// import React from "react";
-
-// type ButtonProps = {
-//   variant?: "primary" | "secondary";
-//   children: React.ReactNode;
-// } & React.ButtonHTMLAttributes<HTMLButtonElement>;
-
-// export default function Button({
-//   variant = "primary",
-//   children,
-//   ...props
-// }: ButtonProps) {
-//   const base =
-//     "px-4 py-2 rounded-md cursor-pointer text-sm transition focus:outline-none";
-
-//   const variants = {
-//     primary: "bg-black text-white hover:bg-gray-800",
-//     secondary: "border border-gray-300 hover:bg-gray-50"
-//   };
-
-//   return (
-//     <button
-//       {...props}
-//       className={`${base} ${variants[variant]}`}
-//     >
-//       {children}
-//     </button>
-//   );
-// }

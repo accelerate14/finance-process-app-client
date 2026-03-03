@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const baseUrl =
-  import.meta.env.VITE_API_BASE_URL || "http://192.168.1.125:3000";
+  import.meta.env.VITE_API_BASE_URL || "https://finance-process-app-server-1.onrender.com";
 
 interface ApiSuccess<T = any> {
   success: true;
