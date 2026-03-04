@@ -30,7 +30,7 @@ export default function LoanApplicationWizard() {
         
         const { nextStep, completed, data } = res.response;
 
-        localStorage.setItem("borrowerId", data.profile?.Id || "");
+        localStorage.setItem("borrowerId", jwtDecode<{ guid: string }>(localStorage.getItem("borrower_token") || "").guid || "");
 
         setFormData({
           personalInfo: data?.profile || {},
@@ -39,9 +39,9 @@ export default function LoanApplicationWizard() {
         });
 
         // 🔒 STEP COMES FROM BACKEND
-        setStep(nextStep);
+        setStep(1);
 
-      } catch {
+      } catch (err: any) {
         setApiError("Unable to initialize application");
       } finally {
         setLoading(false);

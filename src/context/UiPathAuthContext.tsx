@@ -3,6 +3,7 @@ import { UiPath, UiPathError } from '@uipath/uipath-typescript';
 import type { UiPathSDKConfig } from '@uipath/uipath-typescript';
 import { jwtDecode } from 'jwt-decode';
 import { getLenderRoleByEmail } from '../api/borrower/get';
+import { Entities } from '@uipath/uipath-typescript/entities';
 
 interface UiPathAuthContextType {
   isAuthenticated: boolean;
@@ -23,86 +24,91 @@ export const UiPathAuthProvider: React.FC<{ children: React.ReactNode; config: U
   const [error, setError] = useState<string | null>(null);
   const [fetchedRole, setLenderRole] = useState<string | null>(null);
   const [user, setUser] = useState<string | null>(null);
-  
+
   const sdkRef = useRef(new UiPath(config));
   const sdk = sdkRef.current;
 
-useEffect(() => {
-  const initOAuth = async () => {
-    const tokenKey = `uipath_sdk_user_token-${config.clientId}`;
-    const storedToken = sessionStorage.getItem(tokenKey);
-    const isCallback = sdk.isInOAuthCallback();
+  useEffect(() => {
+    const initOAuth = async () => {
+      const tokenKey = `uipath_sdk_user_token-${config.clientId}`;
+      const storedToken = sessionStorage.getItem(tokenKey);
+      const isCallback = sdk.isInOAuthCallback();
 
-    console.log("Checking Auth State:", { isCallback, hasStoredToken: !!storedToken });
+      console.log("Checking Auth State:", { isCallback, hasStoredToken: !!storedToken });
 
-    if (!isCallback && !storedToken) {
-      console.log("No session or callback detected. Staying logged out.");
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      if (isCallback) {
-        console.log("OAuth callback detected. Completing handshake...");
-        await sdk.completeOAuth();
+      if (!isCallback && !storedToken) {
+        console.log("No session or callback detected. Staying logged out.");
+        setIsLoading(false);
+        return;
       }
 
-      console.log("Initializing SDK...");
-      await sdk.initialize();
+      try {
+        if (isCallback) {
+          console.log("OAuth callback detected. Completing handshake...");
+          await sdk.completeOAuth();
+        }
 
-      const authenticated = sdk.isAuthenticated();
-      console.log("Is Authenticated:", authenticated);
+        console.log("Initializing SDK...");
+        await sdk.initialize();
 
-      if (authenticated) {
-        const lenderToken = sessionStorage.getItem(tokenKey);
-        if (lenderToken) {
-          const decodedToken = jwtDecode<any>(lenderToken);
-          const userEmail = decodedToken?.email || decodedToken?.name;
-          console.log("Decoded User Info:", { name: decodedToken?.name, email: userEmail });
-          
-          setUser(decodedToken?.name);
+        const authenticated = sdk.isAuthenticated();
+        console.log("Is Authenticated:", authenticated);
 
-          console.log("Fetching all entities from Data Service...");
-          const entities = await sdk.entities.getAll();
-          const lenderEntity = entities.find(e => e.name === "roles");
+        if (authenticated) {
+          const lenderToken = sessionStorage.getItem(tokenKey);
+          if (lenderToken) {
+            const decodedToken = jwtDecode<any>(lenderToken);
+            const userEmail = decodedToken?.email || decodedToken?.name;
+            console.log("Decoded User Info:", { name: decodedToken?.name, email: userEmail });
 
-          console.log("Lender Entity Found:", lenderEntity);
+            setUser(decodedToken?.name);
 
-          if (lenderEntity) {
-            console.log(`Fetching records for entity ID: ${lenderEntity.id}`);
-            const lenderRes = await sdk.entities.getRecordsById(lenderEntity.id);
-            console.log("Raw Lender Records:", lenderRes.items);
-            
-            const lenderRecord = lenderRes.items.find(
-              (r: any) => r.email === userEmail || r.Email === userEmail
-            );
+            console.log("Fetching all entities from Data Service...");
+            const entitiesService = new Entities(sdk);
+            const entities = await entitiesService.getAll();
+            const lenderEntity = entities.find(e => e.name === "FLCM_Roles");
 
-            if (lenderRecord) {
-              console.log("Matched Lender Record:", lenderRecord);
-              const mappedRole = lenderRecord.role.toLowerCase() === "lender" ? "Officer" : "Underwriter";
-              
-              console.log("Setting Assigned Role:", mappedRole);
-              setLenderRole(mappedRole);
-              setIsAuthenticated(true);
+            console.log("Lender Entity Found:", lenderEntity);
+
+            if (lenderEntity) {
+              console.log(`Fetching records for entity ID: ${lenderEntity.id}`);
+
+              // CHANGED: Added 'await' before entitiesService.getById to get the instance
+              const entityInstance = await entitiesService.getById(lenderEntity.id);
+              const lenderRes = await entityInstance.getRecords();
+
+              console.log("Raw Lender Records:", lenderRes.items);
+
+              const lenderRecord = (lenderRes.items as any[]).find(
+                (r: any) => r.email === userEmail || r.Email === userEmail
+              );
+
+              if (lenderRecord) {
+                console.log("Matched Lender Record:", lenderRecord);
+                const mappedRole = lenderRecord.role.toLowerCase() === "lender" ? "Officer" : "Underwriter";
+
+                console.log("Setting Assigned Role:", mappedRole);
+                setLenderRole(mappedRole);
+                setIsAuthenticated(true);
+              } else {
+                console.warn("User email does not match any record in the Lender entity.");
+              }
             } else {
-              console.warn("User email does not match any record in the Lender entity.");
+              console.error("Critical: 'Lender' entity not found in UiPath Data Service.");
             }
-          } else {
-            console.error("Critical: 'Lender' entity not found in UiPath Data Service.");
           }
         }
+      } catch (err) {
+        console.error("SDK Init Error:", err);
+        sessionStorage.removeItem(tokenKey);
+      } finally {
+        setIsLoading(false);
+        console.log("Initialization sequence complete.");
       }
-    } catch (err) {
-      console.error("SDK Init Error:", err);
-      sessionStorage.removeItem(tokenKey);
-    } finally {
-      setIsLoading(false);
-      console.log("Initialization sequence complete.");
-    }
-  };
+    };
 
-  initOAuth();
-}, [sdk, config.clientId]);
+    initOAuth();
+  }, [sdk, config.clientId]);
 
   const login = async (role?: string) => {
     setIsLoading(true);
@@ -131,15 +137,15 @@ useEffect(() => {
   };
 
   return (
-    <UiPathAuthContext.Provider value={{ 
-      isAuthenticated, 
-      isLoading, 
+    <UiPathAuthContext.Provider value={{
+      isAuthenticated,
+      isLoading,
       sdk,
-      login, 
-      logout, 
-      user, 
-      error, 
-      roleLender: fetchedRole 
+      login,
+      logout,
+      user,
+      error,
+      roleLender: fetchedRole
     }}>
       {children}
     </UiPathAuthContext.Provider>

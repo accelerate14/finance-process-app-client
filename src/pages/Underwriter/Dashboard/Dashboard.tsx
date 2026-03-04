@@ -1,17 +1,16 @@
 import { useEffect, useState } from "react";
 import { getAllLoansLender } from "../../../api/borrower/get";
 import { useNavigate } from "react-router-dom";
-import Button from "../../../components/UI/Button";
 
 /* ================= TYPES ================= */
 interface LoanRecord {
   Id: string;
-  loanAmount: number;
-  tenureMonths: number;
-  applicationStatus: string;
-  borrowerId: string;
+  LoanAmount: number;
+  TermOfLoan: number;
+  CaseStatus: string;
+  UserId: string;
+  InterestRate?: number; 
   CreateTime: string;
-  interestRate?: number; // Optional based on API availability
 }
 
 export default function UnderwriterDashboard() {
@@ -36,12 +35,12 @@ export default function UnderwriterDashboard() {
   /* ================= CALCULATIONS ================= */
   const stats = {
     total: loans.length,
-    pending: loans.filter(l => l.applicationStatus === "SUBMITTED").length,
+    pending: loans.filter(l => l.CaseStatus === "SUBMITTED").length,
     approvedAmount: loans
-      .filter(l => l.applicationStatus === "APPROVED")
-      .reduce((sum, l) => sum + (l.loanAmount || 0), 0),
+      .filter(l => l.CaseStatus === "APPROVED")
+      .reduce((sum, l) => sum + (l.LoanAmount || 0), 0),
     rejectedPercent: loans.length 
-      ? ((loans.filter(l => l.applicationStatus === "REJECTED").length / loans.length) * 100).toFixed(2) 
+      ? ((loans.filter(l => l.CaseStatus === "REJECTED").length / loans.length) * 100).toFixed(2) 
       : "0.00"
   };
 
@@ -93,15 +92,15 @@ export default function UnderwriterDashboard() {
                     <tr 
                       key={loan.Id} 
                       className="border-b border-gray-50 hover:bg-blue-50/50 cursor-pointer transition-colors"
-                      onClick={() => navigate(`/lender/loan-action/${loan.Id}/${loan.borrowerId}`)}
+                      onClick={() => navigate(`/lender/loan-action/${loan.Id}/${loan.UserId}`)}
                     >
                       <td className="px-4 py-3 text-blue-600 font-semibold underline decoration-blue-200">
                         LO - {String(idx + 1).padStart(6, '0')}
                       </td>
-                      <td className="px-4 py-3 font-medium text-gray-900">${loan.loanAmount?.toLocaleString()}</td>
+                      <td className="px-4 py-3 font-medium text-gray-900">${loan.LoanAmount?.toLocaleString()}</td>
                       <td className="px-4 py-3 text-gray-500">{formatDate(loan.CreateTime)}</td>
-                      <td className="px-4 py-3 text-gray-500">{loan.interestRate?.toFixed(2) || "0.00"}</td>
-                      <td className="px-4 py-3 text-gray-500">{loan.tenureMonths}</td>
+                      <td className="px-4 py-3 text-gray-500">{loan.InterestRate?.toFixed(2) || "0.00"}</td>
+                      <td className="px-4 py-3 text-gray-500">{loan.TermOfLoan}</td>
                     </tr>
                   ))}
                 </tbody>

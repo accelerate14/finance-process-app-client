@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Input from "../../../components/UI/Input";
 import Button from "../../../components/UI/Button";
 import { submitBorrowerProfile } from "../../../api/borrower/post";
 import { useAuth } from "../../../context/useAuth";
 import { jwtDecode } from "jwt-decode";
+import { getBorrowerProfile } from "../../../api/borrower/get";
+
 
 export default function PersonalInfoStep({
   defaultValues,
@@ -19,6 +21,41 @@ export default function PersonalInfoStep({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setData({ ...data, [e.target.name]: e.target.value });
   };
+
+  useEffect(() => {
+    const loadProfile = async () => {
+    try {
+      const token = localStorage.getItem("borrower_token");
+      if (!token) return;
+
+      const userId = jwtDecode<{ guid: string }>(token).guid;
+      const res = await getBorrowerProfile(userId);
+
+      // Access: res -> response -> data
+      if (res.success && res.response && res.response.data) {
+        const p = res.response.data; 
+        
+        setData({
+          firstName: p.FirstName,
+          lastName: p.LastName,
+          dob: p.DateOfBirth ? p.DateOfBirth.split('T')[0] : "", // Formats "2026-03-03" for the date input
+          ssn: p.SSN,
+          address: p.Address,
+          city: p.City,
+          state: p.State,
+          zip: p.ZipCode,
+          email: p.Email,
+          profileCompleted: true,
+        });
+      }
+    } catch (err: any) {
+      console.error("Mapping error:", err);
+      setApiError("Unable to load profile data");
+    }
+  };
+
+  loadProfile();
+  }, []);
 
   const validate = () => {
     if (allowNextWithoutValidation) return true;
@@ -65,7 +102,7 @@ export default function PersonalInfoStep({
       ZipCode: data.zip,
       Email: data.email,
       profileCompleted: true,
-      UserId: jwtDecode<{ borrowerId: string }>(localStorage.getItem("borrower_token") || "").borrowerId,
+      UserId: jwtDecode<{ guid: string }>(localStorage.getItem("borrower_token") || "").guid,
     };
 
     const result = await submitBorrowerProfile(payload);

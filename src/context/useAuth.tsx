@@ -35,7 +35,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setIsAuthenticated(true);
           setRole("borrower");
           setUserId(decoded.guid);
-          setBorrowerId(localStorage.getItem('borrowerId') || "");
+          setBorrowerId(decoded.guid || "");
         }
       } catch (err) {
         console.error("Borrower session restore failed", err);

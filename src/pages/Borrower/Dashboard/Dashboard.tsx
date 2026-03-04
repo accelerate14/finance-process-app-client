@@ -17,7 +17,7 @@ const getStatusBadge = (status: string) => {
 };
 
 export default function BorrowerDashboard() {
-    const borrowerId = localStorage.getItem("borrowerId") || "";
+    const borrowerId = jwtDecode<{ guid: string }>(localStorage.getItem("borrower_token") || "").guid
     const [loading, setLoading] = useState(true);
     const [profile, setProfile] = useState<any>(null);
     const [loans, setLoans] = useState<any[]>([]);
@@ -30,7 +30,7 @@ export default function BorrowerDashboard() {
                     const token = localStorage.getItem("borrower_token");
                     if (token) {
                         const decoded: any = jwtDecode(token);
-                        localStorage.setItem("borrowerId", decoded.borrowerId);
+                        localStorage.setItem("borrowerId", decoded.guid);
                     }
                 }
                 const [p, l] = await Promise.all([

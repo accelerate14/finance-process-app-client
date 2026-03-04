@@ -37,7 +37,7 @@ export default function BorrowerLogin() {
 
     const { data } = res.response;
 
-    localStorage.setItem("borrowerId", data.profile?.Id || "");
+    localStorage.setItem("borrowerId", jwtDecode<{ guid: string }>(localStorage.getItem("borrower_token") || "").guid || "");
     setLoading(false);
     navigate("/borrower/home");
   };

@@ -4,6 +4,7 @@ import Select from "../../../components/UI/Select";
 import Input from "../../../components/UI/Input";
 import { submitEmploymentInfo } from "../../../api/borrower/post";
 import { useAuth } from "../../../context/useAuth";
+import { jwtDecode } from "jwt-decode";
 
 export default function EmploymentStep({
   defaultValues,
@@ -40,7 +41,7 @@ export default function EmploymentStep({
     setLoading(true);
 
     const payload = {
-      UserId: localStorage.getItem("borrowerId") || borrowerId,
+      UserId: jwtDecode<{ guid: string }>(localStorage.getItem("borrower_token") || "").guid || borrowerId,
       EmploymentStatus: data.employmentStatus,
       EmployerName: data.employerName || null,
       YearsAtEmployer: Number(data.yearsAtEmployer),
