@@ -6,10 +6,11 @@ import {
 } from "../../../api/borrower/get";
 import Button from "../../../components/UI/Button";
 import { useNavigate } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
 
 export default function BorrowerReviewPage() {
     const navigate = useNavigate();
-    const borrowerId = localStorage.getItem("borrowerId") || "";
+    const borrowerId = jwtDecode<{ guid: string }>(localStorage.getItem("borrower_token") || "").guid || "";
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -36,14 +37,30 @@ export default function BorrowerReviewPage() {
                 setEmployment(e.response.data);
 
                 // ✅ HANDLE ARRAY: Pick the latest loan from the array
-                const loanData = l.response.data;
-                if (Array.isArray(loanData) && loanData.length > 0) {
-                    // Sort by CreateTime descending or just pick the last item
-                    const latestLoan = loanData[loanData.length - 1];
-                    setLoan(latestLoan);
-                } else if (loanData && !Array.isArray(loanData)) {
-                    // Fallback if API returns a single object
-                    setLoan(loanData);
+                // const loanData = l.response.data;
+                // if (Array.isArray(loanData) && loanData.length > 0) {
+                //     // Sort by CreateTime descending or just pick the last item
+                //     const latestLoan = loanData[loanData.length - 1];
+                //     setLoan(latestLoan);
+                // } else if (loanData && !Array.isArray(loanData)) {
+                //     // Fallback if API returns a single object
+                //     setLoan(loanData);
+                // }
+
+                const loanArray = l.response.data; // This is the Array(1) you see in console
+
+                if (Array.isArray(loanArray) && loanArray.length > 0) {
+                    // We sort just in case there's more than one record for this user
+                    const sortedLoans = [...loanArray].sort((a, b) => {
+                        const dateA = new Date(a.CreateTime).getTime();
+                        const dateB = new Date(b.CreateTime).getTime();
+                        return dateB - dateA; // Newest first
+                    });
+
+                    setLoan(sortedLoans[0]);
+                } else if (loanArray && !Array.isArray(loanArray)) {
+                    // Fallback for single object responses
+                    setLoan(loanArray);
                 }
 
             } catch (err) {
@@ -103,13 +120,13 @@ export default function BorrowerReviewPage() {
                 </Section>
 
                 <div className="flex justify-between pt-6 border-t">
-                    <Button 
-                        onClick={() => navigate("/borrower/dashboard")} 
+                    <Button
+                        onClick={() => navigate("/borrower/dashboard")}
                         className="bg-white !text-gray-600 border hover:bg-gray-50"
                     >
                         Back to Dashboard
                     </Button>
-                    
+
                     <Button onClick={() => navigate("/borrower/upload-documents")}>
                         Confirm & Continue
                     </Button>
