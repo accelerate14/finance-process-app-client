@@ -29,8 +29,7 @@ export default function BorrowerDashboard() {
                 if (!borrowerId) {
                     const token = localStorage.getItem("borrower_token");
                     if (token) {
-                        const decoded: any = jwtDecode(token);
-                        localStorage.setItem("borrowerId", decoded.guid);
+                        localStorage.setItem("borrowerId", jwtDecode<{ guid: string }>(localStorage.getItem("borrower_token") || "").guid);
                     }
                 }
                 const [p, l] = await Promise.all([

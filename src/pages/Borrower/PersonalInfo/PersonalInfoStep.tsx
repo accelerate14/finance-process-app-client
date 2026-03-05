@@ -118,7 +118,7 @@ export default function PersonalInfoStep({
       borrowerProfileId: result.response.id,
     };
 
-    localStorage.setItem("borrowerId", result.response.id);
+    localStorage.setItem("borrowerId", jwtDecode<{ guid: string }>(localStorage.getItem("borrower_token") || "").guid);
     setLoading(false);
     onSuccess(updatedData);
   };

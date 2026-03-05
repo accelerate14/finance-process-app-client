@@ -57,6 +57,8 @@ export default function BorrowerReviewPage() {
                         return dateB - dateA; // Newest first
                     });
 
+                    console.log("Sorted Loans:", sortedLoans);
+
                     setLoan(sortedLoans[0]);
                 } else if (loanArray && !Array.isArray(loanArray)) {
                     // Fallback for single object responses
