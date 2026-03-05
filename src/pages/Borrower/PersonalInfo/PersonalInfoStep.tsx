@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import Input from "../../../components/UI/Input";
 import Button from "../../../components/UI/Button";
 import { submitBorrowerProfile } from "../../../api/borrower/post";
-import { useAuth } from "../../../context/useAuth";
 import { jwtDecode } from "jwt-decode";
 import { getBorrowerProfile } from "../../../api/borrower/get";
 
@@ -123,21 +122,6 @@ export default function PersonalInfoStep({
     setLoading(false);
     onSuccess(updatedData);
   };
-
-  // if (isProfileCompleted) {
-  //   return (
-  //     <>
-  //       <div className="p-6 bg-green-50 rounded text-green-700">
-  //         ✅ You have already confirmed this step.
-  //       </div>
-  //       <div className="flex justify-center mt-6">
-  //         <Button onClick={handleNext} loading={loading}>
-  //           Next
-  //         </Button>
-  //       </div>
-  //     </>
-  //   );
-  // }
 
   return (
     <>
