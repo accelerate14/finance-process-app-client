@@ -3,6 +3,19 @@ import Input from "../../../components/UI/Input";
 import Button from "../../../components/UI/Button";
 import Select from "../../../components/UI/Select";
 import { submitLoanApplication } from "../../../api/borrower/post";
+import { jwtDecode } from "jwt-decode";
+import { loanSubmissionSchema } from "../../../validations/loan.validation";
+
+interface LoanPayload {
+  UserId: string;
+  RequestedOn: string;
+  BorrowerEmail: string;
+  LoanAmount: number;
+  TermOfLoan: number;
+  PurposeOfLoan: string;
+  CaseStatus: string;
+  [key: string]: any;
+}
 
 export default function LoanTermsStep({
   defaultValues,
@@ -22,26 +35,36 @@ export default function LoanTermsStep({
   const handleSubmit = async () => {
     setApiError(null);
 
-    const borrowerId = localStorage.getItem("borrowerId");
+    // Kept exactly as requested
+    const token = localStorage.getItem("borrower_token");
+    const borrowerId = jwtDecode<{ guid: string }>(token || "")?.guid;
+    const borrowerEmail = jwtDecode<{ email: string }>(token || "")?.email;
 
     if (!borrowerId) {
       setApiError("Borrower session not found. Please login again.");
       return;
     }
 
-    const payload = {
+    const payload: LoanPayload = {
       RequestedOn: new Date().toISOString(),
-      BorrowerEmail: localStorage.getItem("borrowerEmail") || "",
+      BorrowerEmail: borrowerEmail || "",
       LoanAmount: Number(data.loanAmount),
       TermOfLoan: Number(data.tenureMonths),
-      PurposeOfLoan: data.loanType || "Personal Loan", // Defaulting to Personal Loan if not selected;
+      // CHANGED: Removed "Personal Loan" default. User must select a value.
+      PurposeOfLoan: data.loanType, 
       CaseStatus: "SUBMITTED",
       UserId: borrowerId
     };
 
+    // Joi Validation - This will now catch if PurposeOfLoan is empty/missing
+    const { error } = loanSubmissionSchema.validate(payload, { abortEarly: true });
+    if (error) {
+      setApiError(error.details[0].message);
+      return;
+    }
+
     try {
       setLoading(true);
-
       const res = await submitLoanApplication(payload);
 
       if (!res.success) {
@@ -59,9 +82,7 @@ export default function LoanTermsStep({
 
   return (
     <>
-      <h2 className="text-xl font-semibold mb-4">
-        Loan Terms
-      </h2>
+      <h2 className="text-xl font-semibold mb-4">Loan Terms</h2>
 
       {apiError && (
         <div className="mb-4 text-sm text-red-600 bg-red-50 p-3 rounded">
@@ -73,6 +94,8 @@ export default function LoanTermsStep({
         <Select
           label="Loan Type*"
           name="loanType"
+          // If using a generic Select component, ensure it has a placeholder 
+          // like <option value="">Select a type</option> inside it.
           value={data.loanType || ""}
           onChange={handleChange}
           options={[
@@ -85,22 +108,24 @@ export default function LoanTermsStep({
         />
 
         <Input
-          label="Loan Amount*"
+          label="Loan Amount (Min 1,000)*"
           name="loanAmount"
+          type="number"
           value={data.loanAmount || ""}
           onChange={handleChange}
         />
 
         <Input
-          label="Tenure (Months)*"
+          label="Tenure (3 - 360 Months)*"
           name="tenureMonths"
+          type="number"
           value={data.tenureMonths || ""}
           onChange={handleChange}
         />
       </div>
 
       <div className="flex justify-between mt-6">
-        <Button variant="secondary" onClick={onBack}>
+        <Button variant="secondary" onClick={onBack} disabled={loading}>
           Back
         </Button>
         <Button onClick={handleSubmit} loading={loading}>

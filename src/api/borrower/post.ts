@@ -125,8 +125,7 @@ export const submitLoanApplication = async (
 export const uploadBorrowerDocuments = async (
   UserId: string,
   DriversLicense?: File,
-  PayStub?: File,
-  ProfilePicture?: File
+  PayStub?: File
 ) => {
   const formData = new FormData();
   formData.append("UserId", UserId);
@@ -137,10 +136,6 @@ export const uploadBorrowerDocuments = async (
 
   if (PayStub) {
     formData.append("PayStub", PayStub);
-  }
-
-  if (ProfilePicture) {
-    formData.append("ProfilePicture", ProfilePicture);
   }
 
   // IMPORTANT: Remove the headers object entirely. 

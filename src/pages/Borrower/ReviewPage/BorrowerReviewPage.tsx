@@ -36,17 +36,6 @@ export default function BorrowerReviewPage() {
                 setProfile(p.response.data);
                 setEmployment(e.response.data);
 
-                // ✅ HANDLE ARRAY: Pick the latest loan from the array
-                // const loanData = l.response.data;
-                // if (Array.isArray(loanData) && loanData.length > 0) {
-                //     // Sort by CreateTime descending or just pick the last item
-                //     const latestLoan = loanData[loanData.length - 1];
-                //     setLoan(latestLoan);
-                // } else if (loanData && !Array.isArray(loanData)) {
-                //     // Fallback if API returns a single object
-                //     setLoan(loanData);
-                // }
-
                 const loanArray = l.response.data; // This is the Array(1) you see in console
 
                 if (Array.isArray(loanArray) && loanArray.length > 0) {
@@ -118,7 +107,6 @@ export default function BorrowerReviewPage() {
                     <Field label="Loan Type" value={loan?.PurposeOfLoan} />
                     <Field label="Amount Requested" value={`₹${loan?.LoanAmount?.toLocaleString()}`} />
                     <Field label="Tenure" value={`${loan?.TermOfLoan} months`} />
-                    <Field label="Interest Rate (Est.)" value="5.2% p.a." />
                 </Section>
 
                 <div className="flex justify-between pt-6 border-t">

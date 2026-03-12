@@ -3,6 +3,7 @@ import Button from "../../../components/UI/Button";
 import Input from "../../../components/UI/Input";
 import { useNavigate } from "react-router-dom";
 import { uploadBorrowerDocuments } from "../../../api/borrower/post";
+import { jwtDecode } from "jwt-decode";
 
 type DocFile = {
   file: File | null;
@@ -12,7 +13,7 @@ type DocFile = {
 type UploadBoxProps = {
   title: string;
   doc: DocFile;
-  accept?: string; // Added optional accept prop
+  accept?: string;
   onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onRemove: () => void;
 };
@@ -20,8 +21,6 @@ type UploadBoxProps = {
 export default function UploadDocumentsPage() {
   const [license, setLicense] = useState<DocFile>({ file: null, previewUrl: null });
   const [payStub, setPayStub] = useState<DocFile>({ file: null, previewUrl: null });
-  // NEW: State for Profile Picture
-  const [profilePic, setProfilePic] = useState<DocFile>({ file: null, previewUrl: null });
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,16 +46,16 @@ export default function UploadDocumentsPage() {
   };
 
   const handleSubmit = async () => {
-    const borrowerId = localStorage.getItem("borrowerId");
+    const borrowerId = jwtDecode<{ guid: string }>(localStorage.getItem("borrower_token") || "").guid
 
     if (!borrowerId) {
       setError("Borrower not found. Please login again.");
       return;
     }
 
-    // Logic: Require at least one doc or the profile pic
-    if (!license.file && !payStub.file && !profilePic.file) {
-      setError("Please upload at least one document or a profile picture.");
+    // Logic: Require both documents to be present
+    if (!license.file || !payStub.file) {
+      setError("Please upload both your Driver's License and Recent Pay Stub.");
       return;
     }
 
@@ -64,13 +63,11 @@ export default function UploadDocumentsPage() {
       setLoading(true);
       setError(null);
 
-      // Update the API call to include the profile picture
-      // Ensure your uploadBorrowerDocuments function in post.ts is updated to accept a 3rd file argument
+      // Removed the 3rd argument (profilePic) from the API call
       await uploadBorrowerDocuments(
         borrowerId,
-        license.file || undefined,
-        payStub.file || undefined,
-        profilePic.file || undefined 
+        license.file,
+        payStub.file
       );
 
       navigate("/borrower/dashboard"); 
@@ -107,16 +104,7 @@ export default function UploadDocumentsPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* PROFILE PICTURE BOX - Only accepts images */}
-            <UploadBox
-              title="Profile Picture"
-              doc={profilePic}
-              accept="image/*" 
-              onUpload={(e) => handleFile(e, setProfilePic)}
-              onRemove={() => removeFile(setProfilePic, profilePic)}
-            />
-
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <UploadBox
               title="Driver's License"
               doc={license}
@@ -138,7 +126,7 @@ export default function UploadDocumentsPage() {
               loading={loading}
               className="px-8"
             >
-              Next
+              Finish & Submit
             </Button>
           </div>
         </div>
@@ -147,7 +135,7 @@ export default function UploadDocumentsPage() {
   );
 }
 
-/* ---------- Updated Upload Box Component ---------- */
+/* ---------- Upload Box Component ---------- */
 
 function UploadBox({ title, doc, onUpload, onRemove, accept = "image/*,.pdf" }: UploadBoxProps) {
   return (
@@ -155,7 +143,7 @@ function UploadBox({ title, doc, onUpload, onRemove, accept = "image/*,.pdf" }: 
       <div className="font-medium mb-3 text-gray-700">{title}</div>
       <Input 
         type="file" 
-        accept={accept} // Use the specific accept prop
+        accept={accept} 
         onChange={onUpload} 
       />
       

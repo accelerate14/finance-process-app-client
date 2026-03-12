@@ -5,6 +5,7 @@ import { useAuth } from "../../../context/useAuth";
 import Button from "../../../components/UI/Button";
 import { jwtDecode } from "jwt-decode";
 import { getBorrowerProgress } from "../../../api/borrower/get";
+import { loginSchema } from "../../../validations/auth.validation";
 
 export default function BorrowerLogin() {
   const navigate = useNavigate();
@@ -17,8 +18,15 @@ export default function BorrowerLogin() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
+
+    const { error: validationError } = loginSchema.validate({ email, password });
+    if (validationError) {
+      setError(validationError.details[0].message);
+      return;
+    }
+
+    setLoading(true);
 
     const result = await loginBorrower(email, password);
 

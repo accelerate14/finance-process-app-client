@@ -4,6 +4,7 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 import { getBorrowerProfile, getLoanApplication } from "../../../api/borrower/get";
 import { jwtDecode } from "jwt-decode";
 import Button from "../../../components/UI/Button";
+import { useNavigate } from "react-router-dom";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -17,25 +18,26 @@ const getStatusBadge = (status: string) => {
 };
 
 export default function BorrowerDashboard() {
-    const borrowerId = jwtDecode<{ guid: string }>(localStorage.getItem("borrower_token") || "").guid
+    const navigate = useNavigate();
+    const token = localStorage.getItem("borrower_token");
+    const borrowerId = token ? jwtDecode<{ guid: string }>(token).guid : "";
+
     const [loading, setLoading] = useState(true);
     const [profile, setProfile] = useState<any>(null);
     const [loans, setLoans] = useState<any[]>([]);
-    const [signingUrl, setSigningUrl] = useState<string | null>(null);
 
     useEffect(() => {
         const loadDashboardData = async () => {
             try {
-                if (!borrowerId) {
-                    const token = localStorage.getItem("borrower_token");
-                    if (token) {
-                        localStorage.setItem("borrowerId", jwtDecode<{ guid: string }>(localStorage.getItem("borrower_token") || "").guid);
-                    }
+                if (!borrowerId && token) {
+                    localStorage.setItem("borrowerId", jwtDecode<{ guid: string }>(token).guid);
                 }
+
                 const [p, l] = await Promise.all([
                     getBorrowerProfile(borrowerId),
                     getLoanApplication(borrowerId),
                 ]);
+
                 if (p.success) setProfile(p.response.data);
                 if (l.success && Array.isArray(l.response.data)) setLoans(l.response.data);
             } finally {
@@ -43,39 +45,7 @@ export default function BorrowerDashboard() {
             }
         };
         loadDashboardData();
-    }, [borrowerId]);
-
-    const handleOpenSigning = async (loan: any) => {
-        try {
-            // Inside handleOpenSigning
-            const response = await fetch("https://finance-process-app-server-1.onrender.com/api/docusign/create-session", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    name: `${profile.FirstName} ${profile.LastName}`,
-                    email: profile.Email,
-                    company: profile.companyName || "Accelirate",
-                    amount: loan.LoanAmount // This will fill the 'loan_amount' field
-                })
-            });
-            const data = await response.json();
-            if (data.url) setSigningUrl(data.url);
-        } catch (err) {
-            alert("Error connecting to DocuSign");
-        }
-    };
-
-    if (signingUrl) {
-        return (
-            <div className="fixed inset-0 z-[100] bg-white flex flex-col">
-                <div className="p-4 bg-gray-900 text-white flex justify-between items-center">
-                    <span className="font-bold">DocuSign Agreement</span>
-                    <button onClick={() => setSigningUrl(null)} className="bg-red-500 px-4 py-1 rounded text-sm">Close</button>
-                </div>
-                <iframe src={signingUrl} className="flex-1 w-full border-none" title="DocuSign" />
-            </div>
-        );
-    }
+    }, [borrowerId, token]);
 
     if (loading) return <div className="p-10 text-center text-gray-500">Loading dashboard...</div>;
 
@@ -94,11 +64,9 @@ export default function BorrowerDashboard() {
     return (
         <div className="min-h-screen bg-gray-100 p-4 md:p-6 font-sans">
             <div className="max-w-7xl mx-auto space-y-6">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-800">Welcome, {profile?.FirstName}</h1>
-                        <p className="text-sm text-gray-500">{loans.length} active applications</p>
-                    </div>
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-800">Welcome, {profile?.FirstName}</h1>
+                    <p className="text-sm text-gray-500">{loans.length} active applications</p>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
@@ -108,7 +76,7 @@ export default function BorrowerDashboard() {
                         { label: "In Review", value: inProgressCount },
                         { label: "Rejected", value: 0 },
                         { label: "Pending Action", value: approvedCount },
-                        { label: "Average Value", value: "$" + (submittedCount > 0 ? (loans.reduce((a,c) => a+c.LoanAmount, 0)/submittedCount).toLocaleString() : 0) }
+                        { label: "Average Value", value: "$" + (submittedCount > 0 ? (loans.reduce((a, c) => a + c.LoanAmount, 0) / submittedCount).toLocaleString() : 0) }
                     ].map((card) => (
                         <div key={card.label} className="bg-white rounded-xl shadow p-4 text-center">
                             <p className="text-[10px] uppercase font-bold text-gray-400 mb-1">{card.label}</p>
@@ -131,17 +99,26 @@ export default function BorrowerDashboard() {
                             </thead>
                             <tbody className="divide-y divide-gray-100">
                                 {loans.map((item) => (
-                                    <tr key={item.Id} className="hover:bg-indigo-50/50 transition-colors">
-                                        <td className="px-4 py-4 text-indigo-600 font-bold">{item.Id?.slice(0, 8)}</td>
+                                    <tr
+                                        key={item.Id}
+                                        className="hover:bg-indigo-50/50 cursor-pointer transition-colors group"
+                                        onClick={() => navigate(`/borrower/loan-details/${item.Id}`, { state: { loan: item } })}
+                                    >
+                                        <td className="px-4 py-4 text-indigo-600 font-bold group-hover:underline">
+                                            {item.Id?.slice(0, 8) || "N/A"}
+                                        </td>
                                         <td className="px-4 py-4 font-medium">${item.LoanAmount?.toLocaleString()}</td>
                                         <td className="px-4 py-4">{getStatusBadge(item.CaseStatus)}</td>
                                         <td className="px-4 py-4 text-right">
                                             {item.CaseStatus?.toUpperCase() === "SUBMITTED" ? (
-                                                <Button 
-                                                    onClick={() => handleOpenSigning(item)}
-                                                    className="bg-green-600 hover:bg-green-700 text-white text-[10px] font-bold px-3 py-2 rounded"
+                                                <Button
+                                                    onClick={(e: React.MouseEvent) => {
+                                                        e.stopPropagation(); // Prevents double navigation
+                                                        navigate(`/borrower/loan-details/${item.Id}`, { state: { loan: item } });
+                                                    }}
+                                                    className="bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold px-3 py-2 rounded"
                                                 >
-                                                    SIGN AGREEMENT
+                                                    Review
                                                 </Button>
                                             ) : (
                                                 <span className="text-gray-400 text-[10px] font-bold">LOCKED</span>

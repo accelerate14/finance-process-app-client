@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { registerBorrower } from "../../../api/borrower/post";
 import { useAuth } from "../../../context/useAuth";
 import Button from "../../../components/UI/Button";
+import { registerSchema } from "../../../validations/auth.validation";
 
 export default function BorrowerRegister() {
   const navigate = useNavigate();
@@ -18,8 +19,14 @@ export default function BorrowerRegister() {
     e.preventDefault();
     setError(null);
 
-    if (password !== confirmPassword) {
-      setError("Passwords do not match");
+    // 1. Joi Validation
+    const { error: validationError } = registerSchema.validate(
+      { email, password, confirmPassword },
+      { abortEarly: true }
+    );
+
+    if (validationError) {
+      setError(validationError.details[0].message);
       return;
     }
 
