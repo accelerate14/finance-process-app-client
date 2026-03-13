@@ -128,6 +128,7 @@ export default function EmploymentStep({
           type="number"
           value={data.yearsAtEmployer || ""}
           onChange={handleChange}
+          disabled={data.employmentStatus === "Unemployed"}
         />
 
         <Input
@@ -136,6 +137,7 @@ export default function EmploymentStep({
           type="number"
           value={data.monthlyIncome || ""}
           onChange={handleChange}
+          disabled={data.employmentStatus === "Unemployed"}
         />
       </div>
 

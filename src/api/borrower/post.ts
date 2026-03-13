@@ -27,8 +27,20 @@ export const registerBorrower = async (
       password,
     });
     return { success: true, response: res.data };
-  } catch {
-    return { success: false, message: "Registration failed" };
+  } catch (error: any) {
+    // 1. Check if the server sent a specific error response
+    if (error.response && error.response.data) {
+      return {
+        success: false,
+        message: error.response.data.message || "Registration failed"
+      };
+    }
+
+    // 2. Fallback for network errors (server down, no internet)
+    return {
+      success: false,
+      message: "Network error. Please try again later."
+    };
   }
 };
 
@@ -153,7 +165,7 @@ export const createBorrowerStages = async (
     comments: string;
     isDocumentUploaded: boolean;
   }
-): Promise<ApiResult> => {  
+): Promise<ApiResult> => {
   try {
     const res = await axios.post(
       `${baseUrl}/api/borrower/stages/create-stage`,
