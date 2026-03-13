@@ -25,6 +25,8 @@ import UnderwriterDashboard from "./pages/Underwriter/Dashboard/Dashboard";
 import { ProtectedRoute } from "./components/Auth/ProtectedRoute";
 import AccessDenied from "./components/FailedUI/AccessDenied";
 import Footer from "./components/Footer/Footer";
+import DevWrapper from "./components/DevWrapper/DevWrapper";
+
 
 const authConfig: UiPathSDKConfig = {
   clientId: import.meta.env.VITE_UIPATH_CLIENT_ID,
