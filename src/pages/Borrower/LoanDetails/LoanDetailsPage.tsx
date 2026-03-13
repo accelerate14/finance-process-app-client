@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
-import { getBorrowerProfile, getLoanById } from "../../../api/borrower/get";
+import { getBorrowerProfile, getEmploymentInfo, getLoanById } from "../../../api/borrower/get";
 import Button from "../../../components/UI/Button";
 import Card from "../../../components/UI/Card";
 import StatBox from "../../../components/UI/StatBox";
@@ -24,20 +24,23 @@ export default function LoanDetailsPage() {
   const [activeTab, setActiveTab] = useState<"details" | "actions">("details");
   const [loan, setLoan] = useState<any>(location.state?.loan || null);
   const [profile, setProfile] = useState<any>(null);
+  const [employmentInfo, setEmploymentInfo] = useState<any>(null);
   const [loading, setLoading] = useState(!location.state?.loan);
 
   useEffect(() => {
     const initializeData = async () => {
       try {
-        const requests: [Promise<any>, Promise<any> | null] = [
+        const requests: [Promise<any>, Promise<any> | null, Promise<any> | null] = [
           getBorrowerProfile(borrowerId),
-          !loan ? getLoanById(loanId!) : null
+          !loan ? getLoanById(loanId!) : null,
+          getEmploymentInfo(borrowerId)
         ];
 
-        const [pRes, lRes] = await Promise.all(requests);
+        const [pRes, lRes, eRes] = await Promise.all(requests);
 
         if (pRes.success) setProfile(pRes.response.data);
         if (lRes && lRes.success) setLoan(lRes.response.data);
+        if (eRes && eRes.success) setEmploymentInfo(eRes.response.data);
 
       } catch (err) {
         console.error("Error loading details:", err);
@@ -54,6 +57,7 @@ export default function LoanDetailsPage() {
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       <div className="max-w-6xl mx-auto space-y-6">
+        <h1 className="text-2xl font-extrabold text-center text-gray-400">This page is still under development!!</h1>
 
         {/* Navigation Tabs */}
         <div className="flex border-b border-gray-200 overflow-x-auto">
@@ -96,11 +100,10 @@ export default function LoanDetailsPage() {
               <div className="lg:col-span-1">
                 <Card title="Borrower Details">
                   <div className="space-y-4">
-                    <InfoRow label="ID" value={loan?.Id?.split('-')[0].toUpperCase()} />
-                    <InfoRow label="Name" value={`${profile?.Firstname || '...'} ${profile?.LastName || ''}`} />
+                    <InfoRow label="Loan ID" value={loan?.Id?.split('-')[0].toUpperCase()} />
+                    <InfoRow label="Name" value={`${profile?.FirstName} ${profile?.LastName || ''}`} />
                     <InfoRow label="Email" value={profile?.Email || '...'} />
-                    <InfoRow label="Employment" value="Salaried" />
-                    <InfoRow label="KYC Status" value="Verified" isStatus />
+                    <InfoRow label="Employment Status" value={employmentInfo?.EmploymentStatus || '...'} />
                   </div>
                 </Card>
               </div>
