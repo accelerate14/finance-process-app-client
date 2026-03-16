@@ -54,10 +54,10 @@ export default function BorrowerDashboard() {
     const inProgressCount = loans.filter(l => l.CaseStatus?.toUpperCase().includes("REVIEW")).length;
 
     const pieData = {
-        labels: ["Under Review", "Approved", "Other"],
+        labels: ["Under Review", "Approved", "Submitted"],
         datasets: [{
             data: [inProgressCount, approvedCount, submittedCount - (inProgressCount + approvedCount)],
-            backgroundColor: ["#F97316", "#10B981", "#6366F1"],
+            backgroundColor: ["#6366F1", "#10B981", "#F97316"],
         }],
     };
 
