@@ -18,6 +18,8 @@ interface BorrowerPayload {
   Email: string;
   profileCompleted: boolean;
   UserId: string;
+  Unit: string;
+  PhoneNumber: string; // Added PhoneNumber to interface
   HighestDegree: string; // Added HighestDegree to interface
   [key: string]: any;
 }
@@ -58,6 +60,15 @@ export default function PersonalInfoStep({
       return;
     }
 
+    if (e.target.name === "PhoneNumber") {
+      const onlyNums = e.target.value.replace(/[^0-9]/g, "");
+      const maxLength = 10; // Adjust the maximum length as needed
+      if (onlyNums.length <= maxLength) {
+        setData({ ...data, [e.target.name]: onlyNums });
+      }
+      return;
+    }
+
     setData({ ...data, [e.target.name]: e.target.value });
   };
 
@@ -83,6 +94,7 @@ export default function PersonalInfoStep({
       profileCompleted: true,
       Unit: data.Unit,
       HighestDegree: data.HighestDegree, // Added HighestDegree to payload
+      PhoneNumber: data.PhoneNumber,
       UserId: jwtDecode<{ guid: string }>(localStorage.getItem("borrower_token") || "").guid,
     };
 
@@ -163,6 +175,7 @@ export default function PersonalInfoStep({
         <Input label="State*" name="State" value={data.State || ""} onChange={handleChange} />
         <Input label="Zip*" name="ZipCode" type="number" value={data.ZipCode || ""} onChange={handleChange} />
         <Input label="Apt/Unit Number*" name="Unit" value={data.Unit || ""} onChange={handleChange} />
+        <Input label="Phone Number*" name="PhoneNumber" type="tel" value={data.PhoneNumber || ""} onChange={handleChange} />
         <Input label="Email*" name="Email" type="email" disabled value={jwtDecode<{ email: string }>(localStorage.getItem("borrower_token") || "").email} onChange={handleChange} />
       </div>
 

@@ -72,6 +72,8 @@ export const submitBorrowerProfile = async (
     State: string;
     ZipCode: string;
     Email: string;
+    Unit: string;
+    PhoneNumber: string;
     profileCompleted: boolean;
     UserId: string;
   }
