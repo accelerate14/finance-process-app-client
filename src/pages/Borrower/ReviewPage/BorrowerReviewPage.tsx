@@ -106,7 +106,7 @@ export default function BorrowerReviewPage() {
                 <Section title="Loan Details">
                     <Field label="Loan Type" value={loan?.PurposeOfLoan} />
                     <Field label="Amount Requested" value={`₹${loan?.LoanAmount?.toLocaleString()}`} />
-                    <Field label="Tenure" value={`${loan?.TermOfLoan} months`} />
+                    {/* <Field label="Tenure" value={`${loan?.TermOfLoan} months`} /> */}
                 </Section>
 
                 <div className="flex justify-between pt-6 border-t">

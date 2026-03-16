@@ -126,7 +126,7 @@ export const submitLoanApplication = async (
     RequestedOn: string;
     BorrowerEmail: string;
     LoanAmount: number;
-    TermOfLoan: number;
+    // TermOfLoan: number;
     PurposeOfLoan: string;
     CaseStatus: string;
     RequesterEmailID: string;

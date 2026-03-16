@@ -11,7 +11,7 @@ interface LoanPayload {
   RequestedOn: string;
   BorrowerEmail: string;
   LoanAmount: number;
-  TermOfLoan: number;
+  // TermOfLoan: number;
   PurposeOfLoan: string;
   CaseStatus: string;
   RequesterEmailID: string;
@@ -30,6 +30,13 @@ export default function LoanTermsStep({
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
+    if (e.target.name === "loanAmount") {
+      const onlyNums = e.target.value.replace(/[^0-9]/g, "");
+      if (onlyNums.length <= 5) {
+        setData({ ...data, [e.target.name]: onlyNums });
+      }
+      return;
+    }
     setData({ ...data, [e.target.name]: e.target.value });
   };
 
@@ -50,7 +57,7 @@ export default function LoanTermsStep({
       RequestedOn: new Date().toISOString(),
       BorrowerEmail: borrowerEmail || "",
       LoanAmount: Number(data.loanAmount),
-      TermOfLoan: Number(data.tenureMonths),
+      // TermOfLoan: Number(data.tenureMonths),
       // CHANGED: Removed "Personal Loan" default. User must select a value.
       PurposeOfLoan: data.loanType, 
       CaseStatus: "SUBMITTED",
@@ -117,13 +124,13 @@ export default function LoanTermsStep({
           onChange={handleChange}
         />
 
-        <Input
+        {/* <Input
           label="Tenure (3 - 360 Months)*"
           name="tenureMonths"
           type="number"
           value={data.tenureMonths || ""}
           onChange={handleChange}
-        />
+        /> */}
       </div>
 
       <div className="flex justify-between mt-6">
