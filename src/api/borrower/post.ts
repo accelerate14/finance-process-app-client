@@ -54,8 +54,20 @@ export const loginBorrower = async (
       password,
     });
     return { success: true, response: res.data };
-  } catch {
-    return { success: false, message: "Login failed" };
+  } catch (error: any) {
+    // 1. Check if the server sent a specific error response
+    if (error.response && error.response.data) {
+      return {
+        success: false,
+        message: error.response.data.message || "Registration failed"
+      };
+    }
+
+    // 2. Fallback for network errors (server down, no internet)
+    return {
+      success: false,
+      message: "Network error. Please try again later."
+    };
   }
 };
 
