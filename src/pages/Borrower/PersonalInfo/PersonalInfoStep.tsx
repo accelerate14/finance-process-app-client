@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Input from "../../../components/UI/Input";
 import Button from "../../../components/UI/Button";
+import Select from "../../../components/UI/Select"; // Added Select import
 import { submitBorrowerProfile } from "../../../api/borrower/post";
 import { jwtDecode } from "jwt-decode";
 import { borrowerProfileSchema } from "../../../validations/borrower.validation";
@@ -17,7 +18,8 @@ interface BorrowerPayload {
   Email: string;
   profileCompleted: boolean;
   UserId: string;
-  [key: string]: any; // This "Index Signature" fixes the error
+  HighestDegree: string; // Added HighestDegree to interface
+  [key: string]: any;
 }
 
 export default function PersonalInfoStep({
@@ -35,18 +37,25 @@ export default function PersonalInfoStep({
   const isSSNAvailable = !!defaultValues.SSN;
   localStorage.setItem("borrowerId", jwtDecode<{ guid: string }>(localStorage.getItem("borrower_token") || "").guid);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Updated to handle both Input and Select elements
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
 
     if (e.target.name === "SSN" || e.target.name === "ZipCode") {
-      // 1. Remove anything that isn't a number
       const onlyNums = e.target.value.replace(/[^0-9]/g, "");
-
-      // 2. Limit to specific lengths (9 for SSN, 6 for Zip)
       const maxLength = e.target.name === "SSN" ? 9 : 6;
       if (onlyNums.length <= maxLength) {
         setData({ ...data, [e.target.name]: onlyNums });
       }
-      return; // Stop here so the general logic below doesn't overwrite this
+      return;
+    }
+
+    if (e.target.name === "Unit") {
+      const onlyNums = e.target.value.replace(/[^0-9]/g, "");
+      const maxLength = 4; // Adjust the maximum length as needed
+      if (onlyNums.length <= maxLength) {
+        setData({ ...data, [e.target.name]: onlyNums });
+      }
+      return;
     }
 
     setData({ ...data, [e.target.name]: e.target.value });
@@ -54,8 +63,6 @@ export default function PersonalInfoStep({
 
   const validate = (payload: any) => {
     if (allowNextWithoutValidation) return { error: null };
-
-    // Validate the payload against the Joi schema
     const { error } = borrowerProfileSchema.validate(payload, { abortEarly: true });
     return { error };
   };
@@ -63,7 +70,6 @@ export default function PersonalInfoStep({
   const handleNext = async () => {
     setApiError(null);
 
-    // Prepare payload first so we can validate it
     const payload: BorrowerPayload = {
       FirstName: data.FirstName,
       LastName: data.LastName,
@@ -75,6 +81,8 @@ export default function PersonalInfoStep({
       ZipCode: data.ZipCode,
       Email: data.Email || jwtDecode<{ email: string }>(localStorage.getItem("borrower_token") || "").email,
       profileCompleted: true,
+      Unit: data.Unit,
+      HighestDegree: data.HighestDegree, // Added HighestDegree to payload
       UserId: jwtDecode<{ guid: string }>(localStorage.getItem("borrower_token") || "").guid,
     };
 
@@ -85,10 +93,7 @@ export default function PersonalInfoStep({
       return;
     }
 
-
-
     const hasChanges = (Object.keys(payload) as Array<keyof BorrowerPayload>).some(key => {
-      // Skip comparing UserId or profileCompleted as they are usually static/internal
       if (key === 'UserId' || key === 'profileCompleted') return false;
 
       const currentVal = payload[key];
@@ -101,7 +106,6 @@ export default function PersonalInfoStep({
       return currentVal !== originalVal;
     });
 
-    // If already completed → just move ahead
     console.log("isProfileCompleted:", isProfileCompleted, "hasChanges:", hasChanges);
     if (isProfileCompleted && !hasChanges) {
       onSuccess(data);
@@ -142,12 +146,23 @@ export default function PersonalInfoStep({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Input label="First Name*" name="FirstName" value={data.FirstName || ""} onChange={handleChange} />
         <Input label="Last Name*" name="LastName" value={data.LastName || ""} onChange={handleChange} />
+
+        {/* Added Highest Degree Select Box */}
+        <Select
+          label="Highest Degree*"
+          name="HighestDegree"
+          options={["Undergraduate", "Masters", "PHD", "Others"]}
+          value={data.HighestDegree || ""}
+          onChange={handleChange}
+        />
+
         <Input type="date" label="Date of Birth*" name="DateOfBirth" value={data.DateOfBirth ? data.DateOfBirth.split('T')[0] : ""} disabled={isDateOfBirthAvailable} onChange={handleChange} />
         <Input label="SSN*" name="SSN" type="number" maxLength={9} value={data.SSN || ""} disabled={isSSNAvailable} onChange={handleChange} />
         <Input label="Address*" name="Address" value={data.Address || ""} onChange={handleChange} className="md:col-span-2" />
         <Input label="City*" name="City" value={data.City || ""} onChange={handleChange} />
         <Input label="State*" name="State" value={data.State || ""} onChange={handleChange} />
         <Input label="Zip*" name="ZipCode" type="number" value={data.ZipCode || ""} onChange={handleChange} />
+        <Input label="Apt/Unit Number*" name="Unit" value={data.Unit || ""} onChange={handleChange} />
         <Input label="Email*" name="Email" type="email" disabled value={jwtDecode<{ email: string }>(localStorage.getItem("borrower_token") || "").email} onChange={handleChange} />
       </div>
 

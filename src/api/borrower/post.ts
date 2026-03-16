@@ -98,6 +98,11 @@ export const submitEmploymentInfo = async (
     EmployerName?: string;
     YearsAtEmployer: number;
     MonthlyIncome: number;
+    CompensationType: string;
+    EmployerAddress: string;
+    EmployerCity: string;
+    EmployerState: string;
+    EmployerZipCode: string;
   }
 ): Promise<ApiResult> => {
   try {
@@ -115,12 +120,14 @@ export const submitEmploymentInfo = async (
 
 export const submitLoanApplication = async (
   payload: {
-    RequestedOn: string,
+    UserId: string;
+    RequestedOn: string;
     BorrowerEmail: string;
     LoanAmount: number;
     TermOfLoan: number;
     PurposeOfLoan: string;
     CaseStatus: string;
+    RequesterEmailID: string;
   }
 ): Promise<ApiResult> => {
   try {

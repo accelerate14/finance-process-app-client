@@ -5,6 +5,16 @@ export const loanSubmissionSchema = Joi.object({
     RequestedOn: Joi.date().iso().required(),
     BorrowerEmail: Joi.string().email().lowercase().required(),
     
+    // Added RequesterEmailID
+    RequesterEmailID: Joi.string()
+        .email()
+        .lowercase()
+        .required()
+        .messages({
+            'string.email': 'A valid requester email address is required',
+            'any.required': 'Requester Email ID is required'
+        }),
+    
     LoanAmount: Joi.number()
         .positive()
         .min(1000)
@@ -27,7 +37,6 @@ export const loanSubmissionSchema = Joi.object({
             'number.base': 'Term must be a number of months' 
         }),
         
-    // CHANGED: Restricted to your specific list of options
     PurposeOfLoan: Joi.string()
         .valid(
             "Personal Loan",

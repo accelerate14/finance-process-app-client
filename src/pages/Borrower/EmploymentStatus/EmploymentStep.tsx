@@ -7,17 +7,12 @@ import { useAuth } from "../../../context/useAuth";
 import { jwtDecode } from "jwt-decode";
 import { employmentInfoSchema } from "../../../validations/employment.validation";
 
-export default function EmploymentStep({
-  defaultValues,
-  onNext,
-  onBack,
-}: any) {
-  const { borrowerId } = useAuth(); // borrowerId (string)
+export default function EmploymentStep({ defaultValues, onNext, onBack }: any) {
+  const { borrowerId } = useAuth();
   const [data, setData] = useState(defaultValues || {});
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
 
-  // Sync data if defaultValues change (after API load)
   useEffect(() => {
     if (defaultValues && Object.keys(defaultValues).length > 0) {
       setData(defaultValues);
@@ -27,55 +22,85 @@ export default function EmploymentStep({
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
-    setData({ ...data, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+
+    // Check if the user is changing the Employment Status
+    if (name === "employmentStatus") {
+      // Reset all fields and only set the new status
+      setData({
+        employmentStatus: value,
+        employerName: "",
+        yearsAtEmployer: "",
+        monthlyIncome: "",
+        compensationType: "",
+        employerAddress: "",
+        employerCity: "",
+        employerState: "",
+        employerZipCode: "",
+        // Preserve the internal ID if it exists so we don't lose the DB reference
+        Id: data.Id
+      });
+
+      // Clear any existing errors when status changes
+      setApiError(null);
+    } else {
+      // General case for all other inputs
+      setData({ ...data, [name]: value });
+    }
   };
 
   const handleNext = async () => {
     setApiError(null);
 
-    // Keep your specific UserId retrieval logic
     const token = localStorage.getItem("borrower_token");
     const decodedUserId = token ? jwtDecode<{ guid: string }>(token).guid : borrowerId;
 
-    // Prepare payload to match Joi Schema casing
+    // 1. Prepare payload with NEW FIELDS
     const payload = {
       UserId: decodedUserId,
       EmploymentStatus: data.employmentStatus,
       EmployerName: data.employerName || "",
       YearsAtEmployer: data.yearsAtEmployer ? Number(data.yearsAtEmployer) : 0,
       MonthlyIncome: data.monthlyIncome ? Number(data.monthlyIncome) : 0,
+      // New Fields added here
+      CompensationType: data.compensationType || "",
+      EmployerAddress: data.employerAddress || "",
+      EmployerCity: data.employerCity || "",
+      EmployerState: data.employerState || "",
+      EmployerZipCode: data.employerZipCode || "",
     };
 
-    // 1. Joi Validation (Replacing the old manual validate function)
+    // 2. Joi Validation
     const { error } = employmentInfoSchema.validate(payload, { abortEarly: true });
     if (error) {
       setApiError(error.details[0].message);
       return;
     }
 
-    // 2. Change Detection (Skip API if nothing changed)
-    // We check if an ID exists (meaning it's an update) and if values are the same
+    // 3. Updated Change Detection (Includes new fields)
     const hasChanges = Object.keys(payload).some((key) => {
       if (key === "UserId") return false;
-      // Map payload keys back to data keys for comparison
       const dataKeyMap: { [key: string]: string } = {
         EmploymentStatus: "employmentStatus",
         EmployerName: "employerName",
         YearsAtEmployer: "yearsAtEmployer",
         MonthlyIncome: "monthlyIncome",
+        CompensationType: "compensationType",
+        EmployerAddress: "employerAddress",
+        EmployerCity: "employerCity",
+        EmployerState: "employerState",
+        EmployerZipCode: "employerZipCode",
       };
       const dataKey = dataKeyMap[key];
-      return String(payload[key as keyof typeof payload]) !== String(defaultValues[dataKey] || "");
+      return String(payload[key as keyof typeof payload] || "") !== String(defaultValues[dataKey] || "");
     });
 
     if (data.Id && !hasChanges) {
-      console.log("No changes detected. Skipping API call.");
       onNext(data);
       return;
     }
 
     setLoading(true);
-
     const result = await submitEmploymentInfo(payload);
     setLoading(false);
 
@@ -84,13 +109,12 @@ export default function EmploymentStep({
       return;
     }
 
-    // ✅ Move forward ONLY on success
     onNext({
       ...data,
-      ...payload, // Spread payload to keep state updated with numbers
+      ...payload,
       employmentCompleted: true,
       employmentId: result.response?.Id,
-      Id: result.response?.Id // Store ID for future change detection
+      Id: result.response?.Id
     });
   };
 
@@ -118,7 +142,24 @@ export default function EmploymentStep({
           name="employerName"
           value={data.employerName || ""}
           onChange={handleChange}
-          // Optional: Disable if Unemployed for better UX
+          disabled={data.employmentStatus === "Unemployed"}
+        />
+
+        <Select
+          label="Compensation Type*"
+          name="compensationType"
+          options={["Salary", "Hourly"]}
+          value={data.compensationType || ""}
+          onChange={handleChange}
+          disabled={data.employmentStatus === "Unemployed"}
+        />
+
+        <Input
+          label="Monthly Gross Income*"
+          name="monthlyIncome"
+          type="number"
+          value={data.monthlyIncome || ""}
+          onChange={handleChange}
           disabled={data.employmentStatus === "Unemployed"}
         />
 
@@ -132,13 +173,37 @@ export default function EmploymentStep({
         />
 
         <Input
-          label="Monthly Gross Income*"
-          name="monthlyIncome"
-          type="number"
-          value={data.monthlyIncome || ""}
+          label="Employer Address"
+          name="employerAddress"
+          value={data.employerAddress || ""}
           onChange={handleChange}
           disabled={data.employmentStatus === "Unemployed"}
         />
+
+        <Input
+          label="Employer City"
+          name="employerCity"
+          value={data.employerCity || ""}
+          onChange={handleChange}
+          disabled={data.employmentStatus === "Unemployed"}
+        />
+
+        <div className="grid grid-cols-2 gap-2">
+          <Input
+            label="State"
+            name="employerState"
+            value={data.employerState || ""}
+            onChange={handleChange}
+            disabled={data.employmentStatus === "Unemployed"}
+          />
+          <Input
+            label="Zip Code"
+            name="employerZipCode"
+            value={data.employerZipCode || ""}
+            onChange={handleChange}
+            disabled={data.employmentStatus === "Unemployed"}
+          />
+        </div>
       </div>
 
       <div className="flex justify-between mt-6">

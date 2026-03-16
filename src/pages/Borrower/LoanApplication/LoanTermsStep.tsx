@@ -14,6 +14,7 @@ interface LoanPayload {
   TermOfLoan: number;
   PurposeOfLoan: string;
   CaseStatus: string;
+  RequesterEmailID: string;
   [key: string]: any;
 }
 
@@ -53,7 +54,8 @@ export default function LoanTermsStep({
       // CHANGED: Removed "Personal Loan" default. User must select a value.
       PurposeOfLoan: data.loanType, 
       CaseStatus: "SUBMITTED",
-      UserId: borrowerId
+      UserId: borrowerId,
+      RequesterEmailID: borrowerEmail || "",
     };
 
     // Joi Validation - This will now catch if PurposeOfLoan is empty/missing
