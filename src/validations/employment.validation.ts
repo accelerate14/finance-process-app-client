@@ -18,10 +18,10 @@ export const employmentInfoSchema = Joi.object({
             then: Joi.required(),
             otherwise: Joi.allow('', null).optional(),
         })
-        .messages({ 
+        .messages({
             'any.required': 'Employer Name is required for salaried employees.',
             'string.pattern.base': 'Employer Name must only contain letters and spaces.'
-         }),
+        }),
 
     // Compensation Type: Required if not Unemployed
     CompensationType: Joi.string()
@@ -69,19 +69,23 @@ export const employmentInfoSchema = Joi.object({
             then: Joi.required(),
             otherwise: Joi.allow('', null).optional(),
         })
-        .messages({ 
+        .messages({
             'any.required': 'Zip code is required.',
             'string.pattern.base': 'Zip code must be 5 digits.'
         }),
 
     // Years at employer: 0 to 60 years
     YearsAtEmployer: Joi.number()
-        .min(1)
         .max(60)
-        .required()
+        .when('EmploymentStatus', {
+            is: Joi.valid('Salaried', 'Self-Employed'),
+            then: Joi.number().min(1).required(),
+            otherwise: Joi.number().min(0).required()
+        })
         .messages({
-            'number.min': 'Years at employer must be at least 1.',
-            'number.max': 'Please enter a valid number of years (max 60).'
+            'number.min': 'Years at employer must be at least 1 for your employment status.',
+            'number.max': 'Please enter a valid number of years (max 60).',
+            'any.required': 'Years at employer is required.'
         }),
 
     // Monthly income: Must be positive, allowed up to 2 decimal places
