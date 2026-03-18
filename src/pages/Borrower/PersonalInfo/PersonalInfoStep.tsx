@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Input from "../../../components/UI/Input";
 import Button from "../../../components/UI/Button";
 import Select from "../../../components/UI/Select"; // Added Select import
@@ -39,37 +39,69 @@ export default function PersonalInfoStep({
   const isSSNAvailable = !!defaultValues.SSN;
   localStorage.setItem("borrowerId", jwtDecode<{ guid: string }>(localStorage.getItem("borrower_token") || "").guid);
 
-  // Updated to handle both Input and Select elements
+
+  // ... inside the component
+  const isInitialMount = useRef(true);
+
+  useEffect(() => {
+    const fetchZipData = async () => {
+      if (!isInitialMount.current && data.ZipCode?.length === 5) {
+        try {
+          setLoading(true); // Show loading while validating zip
+          const response = await fetch(`https://api.zippopotam.us/us/${data.ZipCode}`);
+          const result = await response.json();
+
+          // Check if the response is empty (invalid Zip)
+          if (!result.places || result.places.length === 0) {
+            setApiError("Invalid Zip Code. Please enter a valid US Zip Code.");
+            setData((prev: any) => ({ ...prev, City: "", State: "" }));
+          } else {
+            // Valid Zip found
+            const place = result.places[0];
+            setApiError(null); // Clear any previous zip error
+            setData((prev: any) => ({
+              ...prev,
+              City: place["place name"],
+              State: place["state"],
+              // Keep your address concatenation logic
+              Address: place["place name"] + ", " + place["state"] + ", " + result.country,
+            }));
+          }
+        } catch (error) {
+          console.error("Zip lookup failed", error);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        isInitialMount.current = false;
+      }
+    };
+
+    fetchZipData();
+  }, [data.ZipCode]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
 
-    if (e.target.name === "SSN" || e.target.name === "ZipCode") {
-      const onlyNums = e.target.value.replace(/[^0-9]/g, "");
-      const maxLength = e.target.name === "SSN" ? 9 : 6;
-      if (onlyNums.length <= maxLength) {
-        setData({ ...data, [e.target.name]: onlyNums });
+    // Clear zip error when user modifies the zip code
+    if (name === "ZipCode") {
+      setApiError(null);
+    }
+
+    if (["SSN", "ZipCode", "Unit", "PhoneNumber"].includes(name)) {
+      const onlyNums = value.replace(/[^0-9]/g, "");
+      let max = 99;
+      if (name === "SSN") max = 9;
+      if (name === "ZipCode") max = 5;
+      if (name === "Unit") max = 4;
+      if (name === "PhoneNumber") max = 10;
+
+      if (onlyNums.length <= max) {
+        setData({ ...data, [name]: onlyNums });
       }
       return;
     }
-
-    if (e.target.name === "Unit") {
-      const onlyNums = e.target.value.replace(/[^0-9]/g, "");
-      const maxLength = 4; // Adjust the maximum length as needed
-      if (onlyNums.length <= maxLength) {
-        setData({ ...data, [e.target.name]: onlyNums });
-      }
-      return;
-    }
-
-    if (e.target.name === "PhoneNumber") {
-      const onlyNums = e.target.value.replace(/[^0-9]/g, "");
-      const maxLength = 10; // Adjust the maximum length as needed
-      if (onlyNums.length <= maxLength) {
-        setData({ ...data, [e.target.name]: onlyNums });
-      }
-      return;
-    }
-
-    setData({ ...data, [e.target.name]: e.target.value });
+    setData({ ...data, [name]: value });
   };
 
   const validate = (payload: any) => {
@@ -188,7 +220,7 @@ export default function PersonalInfoStep({
         <Input label="Address*" name="Address" value={data.Address || ""} onChange={handleChange} className="md:col-span-2" />
         <Input label="City*" name="City" value={data.City || ""} onChange={handleChange} />
         <Input label="State*" name="State" value={data.State || ""} onChange={handleChange} />
-        <Input label="Zip*" name="ZipCode" type="number" value={data.ZipCode || ""} onChange={handleChange} />
+        <Input label="Zip*" name="ZipCode" type="tel" value={data.ZipCode || ""} onChange={handleChange} />
         <Input label="Apt/Unit Number*" name="Unit" value={data.Unit || ""} onChange={handleChange} />
         <Input label="Phone Number*" name="PhoneNumber" type="tel" value={data.PhoneNumber || ""} onChange={handleChange} />
         <Input label="Email*" name="Email" type="email" disabled value={jwtDecode<{ email: string }>(localStorage.getItem("borrower_token") || "").email} onChange={handleChange} />

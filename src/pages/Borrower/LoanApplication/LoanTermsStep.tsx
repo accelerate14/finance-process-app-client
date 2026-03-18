@@ -127,7 +127,7 @@ export default function LoanTermsStep({
         />
 
         <Input
-          label="Loan Amount (Min 1,000)*"
+          label="Loan Amount (Min $1,000)*"
           name="loanAmount"
           type="number"
           value={data.loanAmount || ""}

@@ -209,14 +209,14 @@ export default function UploadDocumentsPage() {
     <div className="min-h-screen bg-gray-100 p-4 md:p-6">
       <div className="max-w-5xl mx-auto">
 
-        <div className="flex justify-start mb-4">
+        {/* <div className="flex justify-start mb-4">
           <button
             onClick={() => navigate("/borrower/dashboard")}
             className="flex items-center text-sm font-medium text-gray-600 hover:text-indigo-600 transition-colors"
           >
             <span className="mr-2">←</span> Go to Dashboard
           </button>
-        </div>
+        </div> */}
 
         <div className="bg-white rounded-xl shadow p-6 md:p-8">
           <h1 className="text-xl font-semibold mb-2">Upload Documents</h1>

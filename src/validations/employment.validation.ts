@@ -63,7 +63,7 @@ export const employmentInfoSchema = Joi.object({
 
     EmployerZipCode: Joi.string()
         .trim()
-        .regex(/^[0-9]{5,6}$/)
+        .regex(/^[0-9]{5}$/)
         .when('EmploymentStatus', {
             is: Joi.valid('Salaried', 'Self-Employed'),
             then: Joi.required(),
@@ -71,16 +71,16 @@ export const employmentInfoSchema = Joi.object({
         })
         .messages({ 
             'any.required': 'Zip code is required.',
-            'string.pattern.base': 'Zip code must be 5 or 6 digits.'
+            'string.pattern.base': 'Zip code must be 5 digits.'
         }),
 
     // Years at employer: 0 to 60 years
     YearsAtEmployer: Joi.number()
-        .min(0)
+        .min(1)
         .max(60)
         .required()
         .messages({
-            'number.min': 'Years at employer cannot be negative.',
+            'number.min': 'Years at employer must be at least 1.',
             'number.max': 'Please enter a valid number of years (max 60).'
         }),
 

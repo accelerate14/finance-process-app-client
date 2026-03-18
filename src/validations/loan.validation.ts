@@ -23,8 +23,8 @@ export const loanSubmissionSchema = Joi.object({
         .max(10000)
         .required()
         .messages({ 
-            'number.min': 'Minimum loan amount is 1,000',
-            'number.max': 'Maximum loan amount is 10,000',
+            'number.min': 'Minimum loan amount is $1,000',
+            'number.max': 'Maximum loan amount is $10,000',
             'number.base': 'Loan amount must be a number'
         }),
         
