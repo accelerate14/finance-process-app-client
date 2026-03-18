@@ -49,9 +49,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const borrowerLogin = (token: string) => {
     localStorage.setItem("borrower_token", token);
     const decoded = jwtDecode<{ guid: string }>(token);
-    localStorage.setItem('borrowerId', decoded.guid);
+    localStorage.setItem('borrowerId', decoded.guid.toString());
     console.log("Borrower logged in with ID:", decoded.guid);
-    setUserId(decoded.guid);
+    setUserId(decoded.guid.toString());
     setIsAuthenticated(true);
     setRole("borrower");
   };
@@ -66,7 +66,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const handleBorrowerId = (id: string) => {
     setBorrowerId(id);
-    localStorage.setItem('borrowerId', id);
+    localStorage.setItem('borrowerId', id.toString());
   };
 
   return (

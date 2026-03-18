@@ -11,7 +11,6 @@ import { UiPathAuthProvider } from "./context/UiPathAuthContext";
 
 import type { UiPathSDKConfig } from "@uipath/uipath-typescript";
 import BorrowerHome from "./pages/Borrower/Home/BorrowerHome";
-import LoanRequestPage from "./pages/Borrower/LoanRequest/LoanRequestPage";
 import BorrowerRegister from "./pages/Borrower/Auth/BorrowerRegister";
 import LoanApplicationWizard from "./pages/Borrower/LoanSteps/LoanApplicationWizard";
 import BorrowerReviewPage from "./pages/Borrower/ReviewPage/BorrowerReviewPage";
@@ -25,8 +24,6 @@ import UnderwriterDashboard from "./pages/Underwriter/Dashboard/Dashboard";
 import { ProtectedRoute } from "./components/Auth/ProtectedRoute";
 import AccessDenied from "./components/FailedUI/AccessDenied";
 import Footer from "./components/Footer/Footer";
-import DevWrapper from "./components/DevWrapper/DevWrapper";
-
 
 const authConfig: UiPathSDKConfig = {
   clientId: import.meta.env.VITE_UIPATH_CLIENT_ID,
@@ -55,7 +52,6 @@ export default function App() {
             <Route element={<ProtectedRoute allowedRole="Borrower" />}>
               <Route path="/borrower/dashboard" element={<BorrowerDashboard />} />
               <Route path="/borrower/home" element={<BorrowerHome />} />
-              <Route path="/borrower/loan-request" element={<LoanRequestPage />} />
               <Route path="/borrower/loan-request-steps" element={<LoanApplicationWizard />} />
               <Route path="/borrower/review" element={<BorrowerReviewPage />} />
               <Route path="/borrower/upload-documents" element={<UploadDocumentsPage />} />

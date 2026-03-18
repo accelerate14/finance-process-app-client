@@ -15,6 +15,8 @@ export default function EmploymentStep({ defaultValues, onNext, onBack }: any) {
 
   useEffect(() => {
     if (defaultValues && Object.keys(defaultValues).length > 0) {
+      console.log("Setting default values for EmploymentStep:", defaultValues);
+      localStorage.setItem("employmentId", defaultValues.Id || "");
       setData(defaultValues);
     }
   }, [defaultValues]);
@@ -109,11 +111,24 @@ export default function EmploymentStep({ defaultValues, onNext, onBack }: any) {
       return;
     }
 
+    console.log("Employment submission successful for id:", result.response);
+
+    const responseData = result.response?.data;
+    const empId = responseData?.successRecords?.[0]?.id || result.response?.id || responseData?.id;
+
+    if (!empId) {
+      console.error("No ID found in response", result.response);
+      setApiError("Server returned a success but no record ID was found.");
+      return;
+    }
+
+    localStorage.setItem("employmentId", empId);
+
     onNext({
       ...data,
       ...payload,
       employmentCompleted: true,
-      employmentId: result.response?.Id,
+      employmentId: empId,
       Id: result.response?.Id
     });
   };

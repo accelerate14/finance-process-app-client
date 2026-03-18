@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Button from "../../../components/UI/Button";
 import Input from "../../../components/UI/Input";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { uploadBorrowerDocuments } from "../../../api/borrower/post";
 import { jwtDecode } from "jwt-decode";
+import { getLoanById } from "../../../api/borrower/get";
 
 type DocFile = {
   file: File | null;
@@ -21,11 +22,124 @@ type UploadBoxProps = {
 export default function UploadDocumentsPage() {
   const [license, setLicense] = useState<DocFile>({ file: null, previewUrl: null });
   const [payStub, setPayStub] = useState<DocFile>({ file: null, previewUrl: null });
+  const hasAlerted = useRef(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const navigate = useNavigate();
+
+  const [checkingCase, setCheckingCase] = useState(true); // New state for initial check
+  const [caseId, setCaseId] = useState<string | null>(null);
+
+  const location = useLocation();
+
+  // Get loanId from state passed during navigation from LoanTermsStep
+  const loanId = location.state?.loanId;
+
+  useEffect(() => {
+  let isSubscribed = true; // Prevents state updates on unmounted component
+  let interval: ReturnType<typeof setInterval>;
+
+  console.log("UploadDocumentsPage mounted with loanId:", loanId);
+  
+  if (!loanId) {
+    navigate("/borrower/dashboard");
+    return;
+  }
+
+  let pollCount = 0;
+  const maxPolls = 10;
+
+  const checkCaseStatus = async () => {
+    const result = await getLoanById(loanId);
+    
+    // CHANGE HERE: Added .data based on your console log
+    const actualData = result.success ? (result as any).response?.data : null;
+    
+    console.log("Checking for CaseId in:", actualData);
+
+    if (actualData && actualData.CaseId) {
+      if (isSubscribed) {
+        setCaseId(actualData.CaseId);
+        setCheckingCase(false);
+      }
+      return true; 
+    }
+    return false;
+  };
+
+  const startPolling = () => {
+    interval = setInterval(async () => {
+      pollCount++;
+      console.log(`Polling attempt ${pollCount}/${maxPolls}`);
+      
+      const found = await checkCaseStatus();
+
+      if (found) {
+        clearInterval(interval);
+      } else if (pollCount >= maxPolls) {
+        clearInterval(interval);
+        alert("Case initialization took too long. Please try again from the dashboard.");
+        navigate("/borrower/dashboard");
+      }
+    }, 2000);
+  };
+
+  // Initial Check
+  checkCaseStatus().then((found) => {
+    if (!found && isSubscribed) {
+      startPolling();
+    }
+  });
+
+  // CLEANUP: This stops the "Multiple Alerts" and "Double Polling"
+  return () => {
+    isSubscribed = false;
+    if (interval) clearInterval(interval);
+  };
+}, [loanId, navigate]);
+
+  // useEffect(() => {
+  //   console.log("UploadDocumentsPage mounted with loanId:", loanId);
+  //   if (!loanId) {
+  //     navigate("/borrower/dashboard");
+  //     return;
+  //   }
+
+  //   let pollCount = 0;
+  //   const maxPolls = 5; // 5 attempts * 2 seconds = 10 seconds total
+
+  //   const checkCaseStatus = async () => {
+  //     const result = await getLoanById(loanId);
+
+  //     // Assuming your API response structure is result.response.CaseId
+  //     if (result.success && result.response?.CaseId) {
+  //       setCaseId(result.response.CaseId);
+  //       setCheckingCase(false);
+  //       return true; // Found it
+  //     }
+  //     return false; // Not found yet
+  //   };
+
+  //   const interval = setInterval(async () => {
+  //     pollCount++;
+  //     const found = await checkCaseStatus();
+
+  //     if (found) {
+  //       clearInterval(interval);
+  //     } else if (pollCount >= maxPolls) {
+  //       clearInterval(interval);
+  //       alert("Your loan is being processed. Please upload documents from the dashboard actions later.");
+  //       navigate("/borrower/dashboard");
+  //     }
+  //   }, 2000);
+
+  //   // Initial check
+  //   checkCaseStatus();
+
+  //   return () => clearInterval(interval);
+  // }, [loanId, navigate]);
 
   const handleFile = (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -66,11 +180,13 @@ export default function UploadDocumentsPage() {
       // Removed the 3rd argument (profilePic) from the API call
       await uploadBorrowerDocuments(
         borrowerId,
+        caseId,
         license.file,
         payStub.file
       );
 
-      navigate("/borrower/dashboard"); 
+      // navigate("/borrower/dashboard");
+      navigate("/borrower/review", { state: { loanId } });
     } catch (err: any) {
       console.error("Upload Error:", err);
       setError(err.response?.data?.message || "Failed to upload documents. Please try again.");
@@ -79,12 +195,22 @@ export default function UploadDocumentsPage() {
     }
   };
 
+  if (checkingCase) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
+        <h2 className="text-lg font-medium text-gray-700">Initializing your loan case...</h2>
+        <p className="text-sm text-gray-500">Please wait while we set up your document portal.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-100 p-4 md:p-6">
       <div className="max-w-5xl mx-auto">
-        
+
         <div className="flex justify-start mb-4">
-          <button 
+          <button
             onClick={() => navigate("/borrower/dashboard")}
             className="flex items-center text-sm font-medium text-gray-600 hover:text-indigo-600 transition-colors"
           >
@@ -121,12 +247,12 @@ export default function UploadDocumentsPage() {
           </div>
 
           <div className="flex justify-end mt-8">
-            <Button 
-              onClick={handleSubmit} 
+            <Button
+              onClick={handleSubmit}
               loading={loading}
               className="px-8"
             >
-              Finish & Submit
+              Upload
             </Button>
           </div>
         </div>
@@ -141,12 +267,12 @@ function UploadBox({ title, doc, onUpload, onRemove, accept = "image/*,.pdf" }: 
   return (
     <div className="border rounded-lg p-4 flex flex-col h-full bg-white">
       <div className="font-medium mb-3 text-gray-700">{title}</div>
-      <Input 
-        type="file" 
-        accept={accept} 
-        onChange={onUpload} 
+      <Input
+        type="file"
+        accept={accept}
+        onChange={onUpload}
       />
-      
+
       {doc.file && (
         <div className="mt-3 flex items-center justify-between text-[11px] bg-indigo-50 text-indigo-700 p-2 rounded border border-indigo-100">
           <span className="truncate flex-1 mr-2">{doc.file.name}</span>

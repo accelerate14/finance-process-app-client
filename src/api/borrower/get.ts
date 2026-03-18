@@ -101,12 +101,14 @@ export const getBorrowerProgress = async (
 
 /* ================= DOCUMENTS ================= */
 
-export const getBorrowerDocuments = async (borrowerId: string): Promise<ApiResult> => {
+export const getBorrowerDocuments = async (CaseId: string): Promise<ApiResult> => {
   try {
-    const res = await axios.get(`${baseUrl}/api/borrower/documents/${borrowerId}`);
+    const res = await axios.get(`${baseUrl}/api/borrower/documents/${CaseId}`);
 
     // Transform relative URLs to absolute ones
     const docs = res.data.data;
+    console.log("Raw documents data:", docs);
+    
     Object.keys(docs).forEach(key => {
       if (docs[key]) docs[key] = `${baseUrl}${docs[key]}`;
     });

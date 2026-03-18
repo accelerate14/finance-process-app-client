@@ -2,6 +2,8 @@ import Joi from 'joi';
 
 export const loanSubmissionSchema = Joi.object({
     UserId: Joi.string().required(),
+    PersonalInfo: Joi.string().required(),
+    EmploymentDetails: Joi.string().required(),
     RequestedOn: Joi.date().iso().required(),
     BorrowerEmail: Joi.string().email().lowercase().required(),
     

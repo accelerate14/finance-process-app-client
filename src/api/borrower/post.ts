@@ -139,6 +139,8 @@ export const submitLoanApplication = async (
     BorrowerEmail: string;
     LoanAmount: number;
     // TermOfLoan: number;
+    PersonalInfo: string,
+    EmploymentDetails: string,
     PurposeOfLoan: string;
     CaseStatus: string;
     RequesterEmailID: string;
@@ -157,11 +159,13 @@ export const submitLoanApplication = async (
 
 export const uploadBorrowerDocuments = async (
   UserId: string,
+  CaseNumber: string | null,
   DriversLicense?: File,
   PayStub?: File
 ) => {
   const formData = new FormData();
   formData.append("UserId", UserId);
+  formData.append("CaseNumber", CaseNumber || "");
 
   if (DriversLicense) {
     formData.append("DriversLicense", DriversLicense);

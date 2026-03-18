@@ -55,10 +55,10 @@ export default function Navbar() {
     <nav className="w-full border-b border-gray-200 bg-white">
       <div className="mx-auto px-6 py-4 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-3">
-          <img src={accelirateLogo} alt="Logo" className="h-9 w-auto" />
-          <span className="text-xl font-bold tracking-wide text-black">AcceliFinance</span>
+          <img src={accelirateLogo} alt="Logo" className="h-10 rounded w-auto" />
+          {/* <span className="text-xl font-bold tracking-wide text-black">AcceliFinance</span> */}
           {lenderRole && <span className="text-l border rounded p-1 border-black tracking-wide text-black">{lenderRole.toUpperCase()} PORTAL</span>}
-          {borrowerRole && <span className="text-l border rounded p-1 border-black tracking-wide text-black">{borrowerRole.toUpperCase()} PORTAL</span>}
+          {borrowerRole && <span className="text-l p-1 tracking-wide text-black">{borrowerRole.toUpperCase()} PORTAL</span>}
         </Link>
 
         {/* {lenderRole && <span className="text-sm font-medium text-black-700">{lenderRole.toUpperCase()}</span>} */}

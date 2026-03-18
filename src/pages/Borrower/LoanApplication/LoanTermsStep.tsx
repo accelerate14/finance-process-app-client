@@ -12,6 +12,8 @@ interface LoanPayload {
   BorrowerEmail: string;
   LoanAmount: number;
   // TermOfLoan: number;
+  PersonalInfo: string,
+  EmploymentDetails: string,
   PurposeOfLoan: string;
   CaseStatus: string;
   RequesterEmailID: string;
@@ -59,8 +61,10 @@ export default function LoanTermsStep({
       LoanAmount: Number(data.loanAmount),
       // TermOfLoan: Number(data.tenureMonths),
       // CHANGED: Removed "Personal Loan" default. User must select a value.
-      PurposeOfLoan: data.loanType, 
+      PurposeOfLoan: data.loanType,
       CaseStatus: "SUBMITTED",
+      PersonalInfo: localStorage.getItem("profileId") || "",
+      EmploymentDetails: localStorage.getItem("employmentId") || "",
       UserId: borrowerId,
       RequesterEmailID: borrowerEmail || "",
     };
@@ -81,7 +85,13 @@ export default function LoanTermsStep({
         return;
       }
 
-      onSubmit(payload);
+      console.log("Loan submission successful with res:", res);
+      console.log("Loan submission successful with response:", res.response);
+
+      const newLoanId = res.response?.data?.id || res.response?.data?.Id;
+      onSubmit(newLoanId);
+
+      // onSubmit(payload);
     } catch {
       setApiError("Something went wrong while submitting loan request");
     } finally {

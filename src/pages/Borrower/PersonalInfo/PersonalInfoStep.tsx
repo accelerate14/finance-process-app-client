@@ -120,6 +120,7 @@ export default function PersonalInfoStep({
 
     console.log("isProfileCompleted:", isProfileCompleted, "hasChanges:", hasChanges);
     if (isProfileCompleted && !hasChanges) {
+      localStorage.setItem("profileId", defaultValues.Id);
       onSuccess(data);
       return;
     }
@@ -134,10 +135,24 @@ export default function PersonalInfoStep({
       return;
     }
 
+    console.log("Profile submission successful with response:", result.response);
+
+    // FIX: Check if successRecords exists, otherwise use the direct ID from the response
+    const profileId = result.response.successRecords?.[0]?.id || result.response.id;
+
+    if (!profileId) {
+      console.error("No ID found in response", result.response);
+      setApiError("Server returned a success but no record ID was found.");
+      setLoading(false);
+      return;
+    }
+
+    localStorage.setItem("profileId", profileId);
+
     const updatedData = {
       ...data,
       profileCompleted: true,
-      borrowerProfileId: result.response.id,
+      borrowerProfileId: profileId,
     };
 
     localStorage.setItem("borrowerId", jwtDecode<{ guid: string }>(localStorage.getItem("borrower_token") || "").guid);

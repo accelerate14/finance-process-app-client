@@ -23,11 +23,14 @@ export default function LoanApplicationWizard() {
       try {
         const res = await getBorrowerProgress(jwtDecode<{ guid: string }>(localStorage.getItem("borrower_token") || "").guid);
 
+
+        console.log("Borrower progress response:", res);
+        
         if (!res.success) {
           setApiError(res.message || "Failed to load borrower state");
           return;
         }
-        
+
         const { nextStep, completed, data } = res.response;
 
         localStorage.setItem("borrowerId", jwtDecode<{ guid: string }>(localStorage.getItem("borrower_token") || "").guid || "");
@@ -64,11 +67,10 @@ export default function LoanApplicationWizard() {
           {["Borrower", "Employment", "Loan Terms"].map((label, i) => (
             <div
               key={label}
-              className={`flex-1 text-center ${
-                step === i + 1
+              className={`flex-1 text-center ${step === i + 1
                   ? "font-semibold text-black"
                   : "text-gray-400"
-              }`}
+                }`}
             >
               {label}
             </div>
@@ -113,7 +115,14 @@ export default function LoanApplicationWizard() {
           <LoanTermsStep
             defaultValues={formData.loanTerms}
             onBack={() => setStep(2)}
-            onSubmit={() => {navigate("/borrower/review", { replace: true });}}
+            // onSubmit={() => {navigate("/borrower/review", { replace: true });}}
+            onSubmit={(id: string) => {
+              console.log("Loan application submitted with ID:", id);
+              navigate("/borrower/upload-documents", {
+                state: { loanId: id },
+                replace: true
+              });
+            }}
             loading={false}
           />
         )}
