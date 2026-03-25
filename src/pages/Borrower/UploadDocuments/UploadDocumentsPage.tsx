@@ -38,108 +38,67 @@ export default function UploadDocumentsPage() {
   const loanId = location.state?.loanId;
 
   useEffect(() => {
-  let isSubscribed = true; // Prevents state updates on unmounted component
-  let interval: ReturnType<typeof setInterval>;
+    let isSubscribed = true; // Prevents state updates on unmounted component
+    let interval: ReturnType<typeof setInterval>;
 
-  console.log("UploadDocumentsPage mounted with loanId:", loanId);
-  
-  if (!loanId) {
-    navigate("/borrower/dashboard");
-    return;
-  }
+    console.log("UploadDocumentsPage mounted with loanId:", loanId);
 
-  let pollCount = 0;
-  const maxPolls = 10;
-
-  const checkCaseStatus = async () => {
-    const result = await getLoanById(loanId);
-    
-    // CHANGE HERE: Added .data based on your console log
-    const actualData = result.success ? (result as any).response?.data : null;
-    
-    console.log("Checking for CaseId in:", actualData);
-
-    if (actualData && actualData.CaseId) {
-      if (isSubscribed) {
-        setCaseId(actualData.CaseId);
-        setCheckingCase(false);
-      }
-      return true; 
+    if (!loanId) {
+      navigate("/borrower/dashboard");
+      return;
     }
-    return false;
-  };
 
-  const startPolling = () => {
-    interval = setInterval(async () => {
-      pollCount++;
-      console.log(`Polling attempt ${pollCount}/${maxPolls}`);
-      
-      const found = await checkCaseStatus();
+    let pollCount = 0;
+    const maxPolls = 16;
 
-      if (found) {
-        clearInterval(interval);
-      } else if (pollCount >= maxPolls) {
-        clearInterval(interval);
-        alert("Case initialization took too long. Please try again from the dashboard.");
-        navigate("/borrower/dashboard");
+    const checkCaseStatus = async () => {
+      const result = await getLoanById(loanId);
+
+      // CHANGE HERE: Added .data based on your console log
+      const actualData = result.success ? (result as any).response?.data : null;
+
+      console.log("Checking for CaseId in:", actualData);
+
+      if (actualData && actualData.CaseId) {
+        if (isSubscribed) {
+          setCaseId(actualData.CaseId);
+          setCheckingCase(false);
+        }
+        return true;
       }
-    }, 2000);
-  };
+      return false;
+    };
 
-  // Initial Check
-  checkCaseStatus().then((found) => {
-    if (!found && isSubscribed) {
-      startPolling();
-    }
-  });
+    const startPolling = () => {
+      interval = setInterval(async () => {
+        pollCount++;
+        console.log(`Polling attempt ${pollCount}/${maxPolls}`);
 
-  // CLEANUP: This stops the "Multiple Alerts" and "Double Polling"
-  return () => {
-    isSubscribed = false;
-    if (interval) clearInterval(interval);
-  };
-}, [loanId, navigate]);
+        const found = await checkCaseStatus();
 
-  // useEffect(() => {
-  //   console.log("UploadDocumentsPage mounted with loanId:", loanId);
-  //   if (!loanId) {
-  //     navigate("/borrower/dashboard");
-  //     return;
-  //   }
+        if (found) {
+          clearInterval(interval);
+        } else if (pollCount >= maxPolls) {
+          clearInterval(interval);
+          alert("Case initialization took too long. Please try again from the dashboard.");
+          navigate("/borrower/dashboard");
+        }
+      }, 3000);
+    };
 
-  //   let pollCount = 0;
-  //   const maxPolls = 5; // 5 attempts * 2 seconds = 10 seconds total
+    // Initial Check
+    checkCaseStatus().then((found) => {
+      if (!found && isSubscribed) {
+        startPolling();
+      }
+    });
 
-  //   const checkCaseStatus = async () => {
-  //     const result = await getLoanById(loanId);
-
-  //     // Assuming your API response structure is result.response.CaseId
-  //     if (result.success && result.response?.CaseId) {
-  //       setCaseId(result.response.CaseId);
-  //       setCheckingCase(false);
-  //       return true; // Found it
-  //     }
-  //     return false; // Not found yet
-  //   };
-
-  //   const interval = setInterval(async () => {
-  //     pollCount++;
-  //     const found = await checkCaseStatus();
-
-  //     if (found) {
-  //       clearInterval(interval);
-  //     } else if (pollCount >= maxPolls) {
-  //       clearInterval(interval);
-  //       alert("Your loan is being processed. Please upload documents from the dashboard actions later.");
-  //       navigate("/borrower/dashboard");
-  //     }
-  //   }, 2000);
-
-  //   // Initial check
-  //   checkCaseStatus();
-
-  //   return () => clearInterval(interval);
-  // }, [loanId, navigate]);
+    // CLEANUP: This stops the "Multiple Alerts" and "Double Polling"
+    return () => {
+      isSubscribed = false;
+      if (interval) clearInterval(interval);
+    };
+  }, [loanId, navigate]);
 
   const handleFile = (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -208,15 +167,6 @@ export default function UploadDocumentsPage() {
   return (
     <div className="min-h-screen bg-gray-100 p-4 md:p-6">
       <div className="max-w-5xl mx-auto">
-
-        {/* <div className="flex justify-start mb-4">
-          <button
-            onClick={() => navigate("/borrower/dashboard")}
-            className="flex items-center text-sm font-medium text-gray-600 hover:text-indigo-600 transition-colors"
-          >
-            <span className="mr-2">←</span> Go to Dashboard
-          </button>
-        </div> */}
 
         <div className="bg-white rounded-xl shadow p-6 md:p-8">
           <h1 className="text-xl font-semibold mb-2">Upload Documents</h1>

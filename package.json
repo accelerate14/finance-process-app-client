@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@docuseal/react": "^1.0.71",
+    "@opensign/react": "^1.0.3",
     "@uipath/uipath-typescript": "^1.1.1",
     "axios": "^1.13.2",
     "chart.js": "^4.5.1",

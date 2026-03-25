@@ -54,8 +54,8 @@ export const loanSubmissionSchema = Joi.object({
         }),
     
     CaseStatus: Joi.string()
-        .valid('Pending', 'In Review', 'Approved', 'Rejected', 'SUBMITTED')
-        .default('SUBMITTED')
+        .valid('Draft', 'Pending', 'In Review', 'Approved', 'Rejected', 'Submitted')
+        .default('Draft')
 });
 
 export const getLoanParamsSchema = Joi.object({

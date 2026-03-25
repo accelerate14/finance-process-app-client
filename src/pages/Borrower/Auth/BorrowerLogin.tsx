@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { loginBorrower } from "../../../api/borrower/post";
 import { useAuth } from "../../../context/useAuth";
@@ -15,6 +15,14 @@ export default function BorrowerLogin() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // If borrower is already logged in, redirect to homepage
+    const token = localStorage.getItem("borrower_token");
+    if (token) {
+      navigate("/borrower/home");
+    }
+  }, [navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

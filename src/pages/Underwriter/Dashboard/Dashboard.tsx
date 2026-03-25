@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
-import { getAllLoansLender } from "../../../api/borrower/get";
+import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useUiPathAuth } from "../../../context/UiPathAuthContext";
+import { Entities } from '@uipath/uipath-typescript/entities';
 
 /* ================= TYPES ================= */
 interface LoanRecord {
@@ -9,166 +10,175 @@ interface LoanRecord {
   TermOfLoan: number;
   CaseStatus: string;
   UserId: string;
-  InterestRate?: number; 
+  InterestRate?: number;
   CreateTime: string;
+  PurposeOfLoan?: string;
 }
 
 export default function UnderwriterDashboard() {
+  const { sdk, isAuthenticated } = useUiPathAuth();
   const [loans, setLoans] = useState<LoanRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [expandedUser, setExpandedUser] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchLoans = async () => {
+    const fetchLoansWithSDK = async () => {
+      if (!sdk || !isAuthenticated) return;
       setLoading(true);
-      const result = await getAllLoansLender();
-      if (result.success) {
-        // Accessing .value as per your provided lender dashboard logic
-        const dataValue = result.response.data?.value || [];
-        setLoans(dataValue);
+      try {
+        const entitiesService = new Entities(sdk);
+        // Fetching from the specific Loan Applications Entity
+        const allEntities = await entitiesService.getAll();
+        const loanMeta = allEntities.find(e => e.name === "FLCMLoanApplications");
+
+        if (loanMeta) {
+          const result = await entitiesService.getAllRecords(loanMeta.id);
+          // SDK returns records in .items
+          setLoans(result.items as any);
+        }
+      } catch (err) {
+        console.error("SDK Fetch Error:", err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
-    fetchLoans();
-  }, []);
+    fetchLoansWithSDK();
+  }, [sdk, isAuthenticated]);
 
-  /* ================= CALCULATIONS ================= */
+  /* ================= GROUPING LOGIC ================= */
+  const groupedData = useMemo(() => {
+    return loans.reduce((acc, loan) => {
+      const uid = loan.UserId || "Unknown User";
+      if (!acc[uid]) acc[uid] = [];
+      acc[uid].push(loan);
+      return acc;
+    }, {} as Record<string, LoanRecord[]>);
+  }, [loans]);
+
   const stats = {
-    total: loans.length,
-    pending: loans.filter(l => l.CaseStatus === "SUBMITTED").length,
-    approvedAmount: loans
-      .filter(l => l.CaseStatus === "APPROVED")
-      .reduce((sum, l) => sum + (l.LoanAmount || 0), 0),
-    rejectedPercent: loans.length 
-      ? ((loans.filter(l => l.CaseStatus === "REJECTED").length / loans.length) * 100).toFixed(2) 
-      : "0.00"
+    totalUsers: Object.keys(groupedData).length,
+    activeLoans: loans.length,
+    pendingUnderwriting: loans.filter(l => l.CaseStatus === "UNDERWRITER_REVIEW").length,
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US");
-  };
-
-  if (loading) return <div className="p-10 text-center font-bold text-gray-400">Syncing Underwriter Data...</div>;
+  if (loading) return (
+    <div className="flex h-screen items-center justify-center bg-slate-50">
+      <div className="text-center space-y-4">
+        <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto" />
+        <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Loading Underwriter Queue</p>
+      </div>
+    </div>
+  );
 
   return (
     <div className="p-8 bg-[#F8FAFC] min-h-screen font-sans">
-      <div className="max-w-7xl mx-auto space-y-6">
-        
-        {/* 1. TOP METRICS BAR (Matches Screenshot 2) */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-0 bg-white border border-gray-200 rounded-sm shadow-sm divide-x divide-gray-100">
-          <MetricBox label="Total Number of Submissions" value={stats.total} />
-          <MetricBox label="Submissions Pending Review" value={stats.pending} />
-          <MetricBox label="Approved Loan Amount" value={`$${stats.approvedAmount.toLocaleString()}`} />
-          <MetricBox label="Percent of Loans Rejected" value={`${stats.rejectedPercent}%`} />
+      <div className="max-w-7xl mx-auto space-y-8">
+
+        {/* HEADER & METRICS */}
+        <div className="flex flex-col md:flex-row justify-between items-end gap-6">
+          <div>
+            <h1 className="text-3xl font-black text-slate-900 tracking-tight">Underwriter Queue</h1>
+            <p className="text-slate-500 font-medium">Grouped by Applicant ID</p>
+          </div>
+          <div className="grid grid-cols-3 gap-4 w-full md:w-auto">
+            <MetricSmall label="Total Applicants" value={stats.totalUsers} />
+            <MetricSmall label="Total Loans" value={stats.activeLoans} />
+            <MetricSmall label="In Review" value={stats.pendingUnderwriting} />
+          </div>
         </div>
 
-        {/* 2. MAIN CONTENT AREA */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
-          {/* LEFT: LOAN TABLE (Matches UI Style) */}
-          <div className="lg:col-span-2 bg-white rounded-sm shadow-sm border border-gray-200">
-            <div className="p-4 border-b border-gray-100 bg-[#FBFCFD] flex justify-between items-center">
-              <h2 className="text-[12px] font-bold text-gray-600 uppercase tracking-wider">Loan Applications Report</h2>
-              <div className="flex gap-3 text-gray-400 text-sm">
-                {/* <button className="hover:text-gray-600">🔍</button>
-                <button className="hover:text-gray-600">⤢</button> */}
-                <button className="hover:text-gray-600">⋮</button>
-              </div>
-            </div>
-            
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="bg-[#3B82F6] text-white text-[11px] uppercase tracking-tighter">
-                    <th className="px-4 py-3 font-bold border-r border-blue-400/50">Loan ID</th>
-                    <th className="px-4 py-3 font-bold border-r border-blue-400/50">Loan Amount</th>
-                    <th className="px-4 py-3 font-bold border-r border-blue-400/50">Requested On</th>
-                    <th className="px-4 py-3 font-bold border-r border-blue-400/50">Interest Rate (%)</th>
-                    <th className="px-4 py-3 font-bold">Term (Months)</th>
+        {/* MAIN GROUPED TABLE */}
+        <div className="bg-white rounded-2xl border-2 border-slate-100 shadow-sm overflow-hidden">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-900 text-white text-[10px] font-black uppercase tracking-[0.1em]">
+                <th className="px-6 py-4">Applicant User ID</th>
+                <th className="px-6 py-4">Submission Count</th>
+                <th className="px-6 py-4">Latest Application Date</th>
+                <th className="px-6 py-4 text-right">Queue Action</th>
+              </tr>
+            </thead>
+            <tbody className="text-sm">
+              {Object.entries(groupedData).map(([userId, userLoans]) => (
+                <React.Fragment key={userId}>
+                  <tr
+                    className={`border-b border-slate-50 transition-colors cursor-pointer hover:bg-indigo-50/30 ${expandedUser === userId ? 'bg-indigo-50/50' : ''}`}
+                    onClick={() => setExpandedUser(expandedUser === userId ? null : userId)}
+                  >
+                    <td className="px-6 py-5 font-black text-slate-800 flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs">
+                        {userId.substring(0, 2).toUpperCase()}
+                      </div>
+                      {userId}
+                    </td>
+                    <td className="px-6 py-5">
+                      <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-full text-xs font-bold">
+                        {userLoans.length} Applications
+                      </span>
+                    </td>
+                    <td className="px-6 py-5 text-slate-500 font-medium">
+                      {new Date(userLoans[0].CreateTime).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-5 text-right">
+                      <button className="text-indigo-600 font-black text-xs uppercase tracking-widest hover:underline">
+                        {expandedUser === userId ? "Close Folder" : "Open Folder"}
+                      </button>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="text-[12px] text-gray-700">
-                  {loans.map((loan, idx) => (
-                    <tr 
-                      key={loan.Id} 
-                      className="border-b border-gray-50 hover:bg-blue-50/50 cursor-pointer transition-colors"
-                      onClick={() => navigate(`/lender/loan-action/${loan.Id}/${loan.UserId}`)}
-                    >
-                      <td className="px-4 py-3 text-blue-600 font-semibold underline decoration-blue-200">
-                        LO - {String(idx + 1).padStart(6, '0')}
+
+                  {/* EXPANDED LOAN LIST */}
+                  {expandedUser === userId && (
+                    <tr className="bg-slate-50/50">
+                      <td colSpan={4} className="px-10 py-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {userLoans.map((loan, i) => (
+                            <div
+                              key={loan.Id}
+                              onClick={(e) => {
+                                e.stopPropagation(); // 1. Prevents closing the folder when clicking the card
+                                navigate(`/lender/loan-action/${loan.Id}/${loan.UserId}`);
+                              }}
+                              className="bg-white p-5 rounded-xl border-2 border-slate-200 hover:border-indigo-500 cursor-pointer transition-all shadow-sm group active:scale-95"
+                            >
+                              <div className="flex justify-between items-start mb-4">
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                  Loan Ref: {String(i + 1).padStart(3, '0')}
+                                </span>
+                                <span className={`text-[9px] font-black px-2 py-0.5 rounded uppercase ${loan.CaseStatus === 'APPROVED' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                                  }`}>
+                                  {loan.CaseStatus}
+                                </span>
+                              </div>
+                              <h4 className="text-2xl font-black text-slate-900 mb-1">
+                                ${loan.LoanAmount?.toLocaleString() || '0'}
+                              </h4>
+                              <p className="text-xs text-slate-500 font-medium mb-4">{loan.PurposeOfLoan || "Personal Loan"}</p>
+                              <div className="pt-4 border-t border-slate-50 flex justify-between items-center group-hover:text-indigo-600">
+                                <span className="text-[10px] font-bold uppercase tracking-tighter">View Case Details</span>
+                                <span className="transform group-hover:translate-x-1 transition-transform">→</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </td>
-                      <td className="px-4 py-3 font-medium text-gray-900">${loan.LoanAmount?.toLocaleString()}</td>
-                      <td className="px-4 py-3 text-gray-500">{formatDate(loan.CreateTime)}</td>
-                      <td className="px-4 py-3 text-gray-500">{loan.InterestRate?.toFixed(2) || "0.00"}</td>
-                      <td className="px-4 py-3 text-gray-500">{loan.TermOfLoan}</td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* RIGHT: PROCESS TRACKER (Matches Screenshot 2) */}
-          <div className="space-y-2">
-             <StatusCard label="Started" color="bg-green-500" date="5/17/2023 4:29 PM" isComplete />
-             <StatusCard label="Credit Score Calculation" color="bg-blue-500" date="5/17/2023 4:29 PM" isComplete />
-             <StatusCard 
-                label="Loan Officer Review" 
-                color="bg-amber-500" 
-                date="5/17/2023 4:29 PM" 
-                comment="good"
-                isComplete 
-             />
-             <StatusCard label="Applicant Document Upload" color="bg-green-500" date="5/17/2023 4:29 PM" isComplete />
-             <StatusCard label="Underwriter Review" color="bg-orange-400" date="CURRENT" isActive />
-             <StatusCard label="Pending Signature" color="bg-gray-400" date="Not Started" />
-             <StatusCard label="Rejected" color="bg-pink-500" date="Not Started" />
-          </div>
-
+                  )}
+                </React.Fragment>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
   );
 }
 
-/* ================= HELPER COMPONENTS ================= */
-
-function MetricBox({ label, value }: { label: string; value: string | number }) {
+function MetricSmall({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="p-5 flex flex-col justify-center">
-      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight mb-2 border-b border-gray-50 pb-1">
-        {label}
-      </p>
-      <p className="text-3xl font-light text-gray-800">{value}</p>
-    </div>
-  );
-}
-
-function StatusCard({ label, color, date, isComplete, isActive, comment }: any) {
-  return (
-    <div className={`rounded-sm border ${isActive ? 'border-blue-200 ring-1 ring-blue-100' : 'border-gray-200'} bg-white overflow-hidden shadow-sm`}>
-      <div className={`${color} px-3 py-1 flex justify-between items-center text-[10px] font-bold text-white uppercase`}>
-        <div className="flex items-center gap-1">
-          {isComplete && <span>✓</span>}
-          <span>{label}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          {isActive && <span className="bg-white text-blue-600 px-1 rounded-[2px] text-[8px]">CURRENT</span>}
-          <span className="opacity-90">{date}</span>
-        </div>
-      </div>
-      {comment && (
-        <div className="p-3 bg-white flex flex-col gap-1 border-b border-gray-50">
-          <div className="flex items-center gap-2">
-             <div className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center text-[10px] text-gray-400">💬</div>
-             <div className="flex flex-col">
-                <span className="text-[9px] font-bold text-gray-400 uppercase leading-none">Loan Officer Comments:</span>
-                <span className="text-[11px] text-gray-600 italic">"{comment}"</span>
-             </div>
-          </div>
-          <span className="text-[8px] text-gray-300 self-end italic">JL &gt; 5/17/2023 4:29 PM</span>
-        </div>
-      )}
+    <div className="bg-white border-2 border-slate-100 p-4 rounded-xl shadow-sm">
+      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{label}</p>
+      <p className="text-xl font-black text-slate-900">{value}</p>
     </div>
   );
 }

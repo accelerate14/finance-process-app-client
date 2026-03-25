@@ -75,17 +75,31 @@ export const UiPathAuthProvider: React.FC<{ children: React.ReactNode; config: U
 
               // CHANGED: Added 'await' before entitiesService.getById to get the instance
               const entityInstance = await entitiesService.getById(lenderEntity.id);
-              const lenderRes = await entityInstance.getRecords();
+              const lenderRes = await entityInstance.getAllRecords();
 
               console.log("Raw Lender Records:", lenderRes.items);
 
               const lenderRecord = (lenderRes.items as any[]).find(
-                (r: any) => r.email === userEmail || r.Email === userEmail
+                (r: any) => {console.log('r email', r.email, 'user email ', userEmail.toLowerCase()); return r.email.toLowerCase() === userEmail.toLowerCase() || r.Email.toLowerCase() === userEmail.toLowerCase()}
               );
+
+              console.log("Matched Lender Record:", lenderRecord);
 
               if (lenderRecord) {
                 console.log("Matched Lender Record:", lenderRecord);
-                const mappedRole = lenderRecord.role.toLowerCase() === "lender" ? "Officer" : "Underwriter";
+
+                // Normalize the role from Data Service
+                const rawRole = (lenderRecord.role || lenderRecord.Role || "").toLowerCase();
+
+                let mappedRole = "";
+
+                if (rawRole === "lender") {
+                  mappedRole = "Officer"; // Or "Officer" if that is your internal app name for it
+                } else if (rawRole === "underwriter") {
+                  mappedRole = "Underwriter";
+                } else {
+                  mappedRole = "Viewer"; // Fallback
+                }
 
                 console.log("Setting Assigned Role:", mappedRole);
                 setLenderRole(mappedRole);
@@ -100,7 +114,7 @@ export const UiPathAuthProvider: React.FC<{ children: React.ReactNode; config: U
         }
       } catch (err) {
         console.error("SDK Init Error:", err);
-        sessionStorage.removeItem(tokenKey);
+        // sessionStorage.removeItem(tokenKey);
       } finally {
         setIsLoading(false);
         console.log("Initialization sequence complete.");

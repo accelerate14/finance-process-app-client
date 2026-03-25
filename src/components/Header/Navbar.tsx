@@ -26,7 +26,7 @@ export default function Navbar() {
   };
 
   useEffect(() => {
-    const lenderToken = localStorage.getItem("uipath_sdk_user_token-f167c2c7-2f0b-4a2f-bf12-6d4c99624c54");
+    const lenderToken = localStorage.getItem(`uipath_sdk_user_token-${import.meta.env.VITE_UIPATH_CLIENT_ID}`);
     if (lenderToken) {
       console.log("Navbar - role from localStorage:", lenderToken);
       setRole('Lender');

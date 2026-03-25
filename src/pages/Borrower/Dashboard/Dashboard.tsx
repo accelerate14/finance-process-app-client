@@ -8,13 +8,22 @@ import { useNavigate } from "react-router-dom";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-const getStatusBadge = (status: string) => {
-    const s = status?.toUpperCase() || "";
+const getStatusBadge = (s: string) => {
     let colors = "bg-gray-100 text-gray-800 border-gray-200";
-    if (s.includes("SUBMITTED") || s.includes("PENDING")) colors = "bg-yellow-100 text-yellow-800 border-yellow-200";
-    else if (s.includes("APPROVED")) colors = "bg-blue-100 text-blue-800 border-blue-200";
-    else if (s.includes("DISBURSED")) colors = "bg-green-100 text-green-800 border-green-200";
-    return <span className={`px-3 py-1 rounded-full text-xs font-bold border ${colors}`}>{status}</span>;
+    if (s.includes("Submitted") || s.includes("Pending")) colors = "bg-yellow-100 text-yellow-800 border-yellow-200";
+    else if (s.includes("Approved")) colors = "bg-blue-100 text-blue-800 border-blue-200";
+    else if (s.includes("Case Completed")) colors = "bg-green-100 text-green-800 border-green-200";
+    return <span className={`px-3 py-1 rounded-full text-xs font-bold border ${colors}`}>{s}</span>;
+};
+
+// Statuses that require borrower action
+const getPendingTaskCount = (s: string): number => {
+    if (
+        s.includes("Agreement Sign Pending") ||
+        s.includes("Documents Reupload")
+    ) return 1;
+    // if (s === "Submitted") return 1; // new loan — docs pending
+    return 0;
 };
 
 export default function BorrowerDashboard() {
@@ -29,15 +38,10 @@ export default function BorrowerDashboard() {
     useEffect(() => {
         const loadDashboardData = async () => {
             try {
-                if (!borrowerId && token) {
-                    localStorage.setItem("borrowerId", jwtDecode<{ guid: string }>(token).guid);
-                }
-
                 const [p, l] = await Promise.all([
                     getBorrowerProfile(borrowerId),
                     getLoanApplication(borrowerId),
                 ]);
-
                 if (p.success) setProfile(p.response.data);
                 if (l.success && Array.isArray(l.response.data)) setLoans(l.response.data);
             } finally {
@@ -45,13 +49,13 @@ export default function BorrowerDashboard() {
             }
         };
         loadDashboardData();
-    }, [borrowerId, token]);
+    }, [borrowerId]);
 
     if (loading) return <div className="p-10 text-center text-gray-500">Loading dashboard...</div>;
 
     const submittedCount = loans.length;
-    const approvedCount = loans.filter(l => l.CaseStatus?.toUpperCase().includes("APPROVED")).length;
-    const inProgressCount = loans.filter(l => l.CaseStatus?.toUpperCase().includes("REVIEW")).length;
+    const approvedCount = loans.filter(l => l.CaseStatus?.includes("Approved")).length;
+    const inProgressCount = loans.filter(l => l.CaseStatus?.includes("Under Review")).length;
 
     const pieData = {
         labels: ["Under Review", "Approved", "Submitted"],
@@ -98,34 +102,53 @@ export default function BorrowerDashboard() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
-                                {loans.map((item) => (
-                                    <tr
-                                        key={item.Id}
-                                        className="hover:bg-indigo-50/50 cursor-pointer transition-colors group"
-                                        onClick={() => navigate(`/borrower/loan-details/${item.Id}`, { state: { loan: item } })}
-                                    >
-                                        <td className="px-4 py-4 text-indigo-600 font-bold group-hover:underline">
-                                            {item.Id?.slice(0, 8) || "N/A"}
-                                        </td>
-                                        <td className="px-4 py-4 font-medium">${item.LoanAmount?.toLocaleString()}</td>
-                                        <td className="px-4 py-4">{getStatusBadge(item.CaseStatus)}</td>
-                                        <td className="px-4 py-4 text-right">
-                                            {item.CaseStatus?.toUpperCase() === "SUBMITTED" ? (
-                                                <Button
-                                                    onClick={(e: React.MouseEvent) => {
-                                                        e.stopPropagation(); // Prevents double navigation
-                                                        navigate(`/borrower/loan-details/${item.Id}`, { state: { loan: item } });
-                                                    }}
-                                                    className="bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold px-3 py-2 rounded"
-                                                >
-                                                    Review
-                                                </Button>
-                                            ) : (
-                                                <span className="text-gray-400 text-[10px] font-bold">LOCKED</span>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))}
+                                {loans.map((item) => {
+                                    const pendingTasks = getPendingTaskCount(item.CaseStatus);
+                                    return (
+                                        <tr
+                                            key={item.Id}
+                                            className="hover:bg-indigo-50/50 cursor-pointer transition-colors group"
+                                            onClick={() => navigate(`/borrower/loan-details/${item.Id}`, { state: { loan: item } })}
+                                        >
+                                            <td className="px-4 py-4 text-indigo-600 font-bold group-hover:underline">
+                                                {item.CaseId || "N/A"}
+                                            </td>
+                                            <td className="px-4 py-4 font-medium">${item.LoanAmount?.toLocaleString()}</td>
+                                            <td className="px-4 py-4">{getStatusBadge(item.CaseStatus)}</td>
+                                            <td className="px-4 py-4 text-right">
+                                                <div className="flex gap-2 justify-end items-center">
+
+                                                    {/* Pending Tasks Badge */}
+                                                    {pendingTasks > 0 && (
+                                                        <span className="flex items-center gap-1 bg-red-50 text-red-600 border border-red-200 text-[10px] font-bold px-2 py-1 rounded-full">
+                                                            <span className="w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center text-[9px]">
+                                                                {pendingTasks}
+                                                            </span>
+                                                            Pending
+                                                        </span>
+                                                    )}
+
+                                                    {/* View Application Button */}
+                                                    <Button
+                                                        onClick={(e: React.MouseEvent) => {
+                                                            e.stopPropagation();
+                                                            navigate(`/borrower/loan-details/${item.Id}`, {
+                                                                state: {
+                                                                    loan: item,
+                                                                    // Auto-open actions tab if there are pending tasks
+                                                                    defaultTab: pendingTasks > 0 ? "actions" : "details"
+                                                                }
+                                                            });
+                                                        }}
+                                                        className="bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold px-3 py-2 rounded"
+                                                    >
+                                                        View Application
+                                                    </Button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>

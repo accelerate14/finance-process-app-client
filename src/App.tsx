@@ -24,6 +24,7 @@ import UnderwriterDashboard from "./pages/Underwriter/Dashboard/Dashboard";
 import { ProtectedRoute } from "./components/Auth/ProtectedRoute";
 import AccessDenied from "./components/FailedUI/AccessDenied";
 import Footer from "./components/Footer/Footer";
+import UnderwriterEvaluation from "./pages/Underwriter/ActionPage/UnderwriterEvaluation";
 
 const authConfig: UiPathSDKConfig = {
   clientId: import.meta.env.VITE_UIPATH_CLIENT_ID,
@@ -63,12 +64,16 @@ export default function App() {
             {/* Restricted to: OFFICER */}
             <Route element={<ProtectedRoute allowedRole="Officer" />}>
               <Route path="/lender/dashboard" element={<LenderDashboard />} />
-              <Route path="/lender/loan-action/:loanId/:borrowerId" element={<LoanActionPage />} />
+              <Route path="/lender/loan-action/:loanId/:borrowerId/:caseNumber" element={<LoanActionPage />} />
             </Route>
 
             {/* Restricted to: UNDERWRITER */}
             <Route element={<ProtectedRoute allowedRole="Underwriter" />}>
               <Route path="/underwriter/dashboard" element={<UnderwriterDashboard />} />
+              <Route
+                path="/lender/loan-action/:loanId/:userId"
+                element={<UnderwriterEvaluation />}
+              />
             </Route>
 
             {/* Catch All */}

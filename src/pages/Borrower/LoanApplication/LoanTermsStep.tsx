@@ -62,7 +62,7 @@ export default function LoanTermsStep({
       // TermOfLoan: Number(data.tenureMonths),
       // CHANGED: Removed "Personal Loan" default. User must select a value.
       PurposeOfLoan: data.loanType,
-      CaseStatus: "SUBMITTED",
+      CaseStatus: "Draft",
       PersonalInfo: localStorage.getItem("profileId") || "",
       EmploymentDetails: localStorage.getItem("employmentId") || "",
       UserId: borrowerId,

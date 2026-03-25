@@ -182,6 +182,23 @@ export const uploadBorrowerDocuments = async (
     formData
   );
 };
+
+
+export const uploadLoanAgreement = async (
+    CaseNumber: string,
+    LoanAgreement: File
+) => {
+    const formData = new FormData();
+    formData.append("CaseNumber", CaseNumber);
+    formData.append("LoanAgreement", LoanAgreement);
+
+    return axios.post(
+        `${baseUrl}/api/borrower/documents/upload-agreement`,
+        formData
+    );
+};
+
+
 /* ================= STAGE MANAGEMENT (STEP 5) ================= */
 export const createBorrowerStages = async (
   payload: {
