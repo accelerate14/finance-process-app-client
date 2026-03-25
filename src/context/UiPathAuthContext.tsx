@@ -79,9 +79,20 @@ export const UiPathAuthProvider: React.FC<{ children: React.ReactNode; config: U
 
               console.log("Raw Lender Records:", lenderRes.items);
 
-              const lenderRecord = (lenderRes.items as any[]).find(
-                (r: any) => {console.log('r email', r.email, 'user email ', userEmail.toLowerCase()); return r.email.toLowerCase() === userEmail.toLowerCase() || r.Email.toLowerCase() === userEmail.toLowerCase()}
-              );
+              const lenderRecord = (lenderRes.items as any[]).find((r: any) => {
+                // 1. Safely extract the email from the record
+                const recordEmail = (r.email || r.Email || "");
+
+                // 2. Safely extract the user email from the token
+                const currentUserEmail = (userEmail || "");
+
+                console.log('Comparing:', recordEmail.toLowerCase(), 'with', currentUserEmail.toLowerCase());
+
+                // 3. Perform the comparison only if both exist
+                return (
+                  recordEmail.toLowerCase().trim() === currentUserEmail.toLowerCase().trim()
+                );
+              });
 
               console.log("Matched Lender Record:", lenderRecord);
 
